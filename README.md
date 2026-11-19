@@ -8,7 +8,7 @@ A mobile-first, privacy-conscious Vedic birth-chart PWA with a Python API. “Jy
 - IANA timezone handling, including ambiguous and nonexistent local birth times.
 - Offline coordinate-to-IANA-timezone lookup using a pinned boundary dataset.
 - Swiss Ephemeris speed diagnostics for retrograde status and per-planet source reporting.
-- Mobile-first installable PWA and FastAPI backend.
+- Mobile-first installable PWA with 192px, 512px, maskable and Apple touch icons.
 - No account database, saved birth profiles, payments, ads, or analytics in this starter.
 
 ## Licence
@@ -33,8 +33,17 @@ pip install -e './api[test,geo]'
 python -m unittest discover -s api/tests -v
 ```
 
+To run the optional independent D1 comparison (downloads/caches the JPL and Hipparcos reference data):
+
+```bash
+pip install -e './api[accuracy]'
+python tools/cross_validate.py
+```
+
 ## Verification status
-GitHub Actions has successfully installed the pinned `vedic-calc` engine and offline timezone data, generated a real sample chart with 9 planetary placements, 12 houses and 9 Mahadasha periods, passed all 16 Python tests, and validated the PWA JavaScript and configuration. This is an integration/smoke test, not independent astronomical or astrological accuracy certification. See [the latest workflow runs](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions).
+GitHub Actions has installed the pinned `vedic-calc` engine and offline timezone data, generated a real sample chart with 9 planetary placements, 12 houses and 9 Mahadasha periods, passed all 16 Python tests, and validated the PWA JavaScript and configuration.
+
+The separate JPL/Skyfield vs Swiss Ephemeris cross-check passed all 4 sample births on 2026-11-19. Maximum measured differences were 0.003434° for ayanamsa, 0.002613° for ascendant and 0.003613° across the nine planetary longitudes. This is a small D1 regression sample, not independent certification of D1 for all dates, divisional charts, dashas or astrological interpretations. See [the validation protocol and scope](docs/accuracy-validation.md) and [GitHub Actions](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions).
 
 ## Deployment
 See [the closed-beta deployment guide](docs/deployment.md) for Render API and Cloudflare Pages setup. No public deployment has been performed yet.
