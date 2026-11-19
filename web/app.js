@@ -68,6 +68,20 @@ function renderChart(chart) {
   get("house-grid").innerHTML = chart.houses.map((house) => `
     <div class="house-item"><span>House ${house.house}</span><strong>${escapeHtml(house.sign)}</strong><small>Lord: ${escapeHtml(house.lord)}</small></div>`).join("");
 
+  const panchanga = chart.birth_panchanga || {};
+  const panchangaItems = [
+    ["Vara", panchanga.vara],
+    ["Tithi", panchanga.tithi_name],
+    ["Nakshatra", panchanga.nakshatra],
+    ["Yoga", panchanga.yoga_name],
+    ["Karana", panchanga.karana_name]
+  ];
+  get("panchanga-grid").innerHTML = panchangaItems.map(([label, value]) => `
+    <div class="panchanga-item"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value || "Not available")}</strong></div>`).join("");
+  const sunrise = panchanga.sunrise_local ? panchanga.sunrise_local.replace("T", " ") : "Unavailable";
+  const sunset = panchanga.sunset_local ? panchanga.sunset_local.replace("T", " ") : "Unavailable";
+  get("sunrise-sunset").textContent = `Birthplace local sunrise: ${sunrise} · sunset: ${sunset}`;
+
   get("dasha-list").innerHTML = chart.vimshottari_mahadashas.map((period) => `
     <div class="dasha-row"><strong>${escapeHtml(period.lord)}</strong><span>${formatDate(period.start_local)} – ${formatDate(period.end_local)}</span></div>`).join("");
 
