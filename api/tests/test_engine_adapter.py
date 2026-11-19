@@ -66,6 +66,18 @@ class EngineAdapterTests(unittest.TestCase):
         fake_package.__path__ = []
         fake_package.calculate_chart = lambda **kwargs: chart
         fake_package.calculate_dasha = lambda chart_arg, levels=1: dasha
+        fake_package.calculate_panchanga = lambda **kwargs: SimpleNamespace(
+            vara="Thursday (Guruvara)",
+            tithi_number=10,
+            tithi_name="Shukla Dashami",
+            nakshatra=Nakshatra.ASHWINI,
+            yoga_number=3,
+            yoga_name="Siddha",
+            karana_number=19,
+            karana_name="Taitila",
+            sunrise=datetime(1990, 3, 15, 6, 20),
+            sunset=datetime(1990, 3, 15, 18, 20),
+        )
         fake_chart_pkg = types.ModuleType("vedic_calc.chart")
         fake_chart_pkg.__path__ = []
         fake_divisional = types.ModuleType("vedic_calc.chart.divisional")
@@ -107,6 +119,9 @@ class EngineAdapterTests(unittest.TestCase):
         self.assertEqual(result["planets"][-1]["planet"], "Ketu")
         self.assertTrue(result["planets"][-1]["retrograde"])
         self.assertEqual(result["vimshottari_mahadashas"][0]["lord"], "Jupiter")
+        self.assertEqual(result["birth_panchanga"]["tithi_name"], "Shukla Dashami")
+        self.assertEqual(result["birth_panchanga"]["nakshatra"], "Ashwini")
+        self.assertEqual(result["birth_panchanga"]["sunrise_local"], "1990-03-15T06:20:00")
         self.assertEqual(len(result["divisional_charts"]), 16)
         self.assertEqual(result["divisional_charts"]["D9"]["division"], 9)
         self.assertEqual(result["divisional_charts"]["D60"]["planets"][0]["planet"], "Sun")
