@@ -57,6 +57,22 @@ class EngineAdapterTests(unittest.TestCase):
             ascendant=Position(None),
             ayanamsa_degrees=23.7,
         )
+        class DivisionalPlanet(IntEnum):
+            SUN = 0
+            MOON = 1
+        class DivisionalSign(IntEnum):
+            ARIES = 1
+            TAURUS = 2
+        def fake_divisional(chart_arg, division):
+            return SimpleNamespace(
+                division=division,
+                name=f"Division {division}",
+                ascendant_sign=DivisionalSign.ARIES,
+                planets={
+                    DivisionalPlanet.SUN: DivisionalSign.ARIES,
+                    DivisionalPlanet.MOON: DivisionalSign.TAURUS,
+                },
+            )
         dasha = [SimpleNamespace(
             level="mahadasha", lord=FakePlanet.JUPITER,
             start=datetime(1990, 1, 1), end=datetime(2006, 1, 1), duration_years=16.0
@@ -66,6 +82,20 @@ class EngineAdapterTests(unittest.TestCase):
         fake_package.__path__ = []
         fake_package.calculate_chart = lambda **kwargs: chart
         fake_package.calculate_dasha = lambda chart_arg, levels=1: dasha
+        fake_chart_pkg = types.ModuleType("vedic_calc.chart")
+        fake_chart_pkg.__path__ = []
+        fake_divisional = types.ModuleType("vedic_calc.chart.divisional")
+        fake_divisional.calculate_divisional_chart = fake_divisional if False else lambda chart_arg, division: fake_divisional_chart(chart_arg, division)
+        fake_divisional_chart = fake_divisional_factory if False else fake_divisional
+        def fake_divisional_factory(chart_arg, division):
+            return SimpleNamespace(
+                division=division,
+                name=f"Division {division}",
+                ascendant_sign=Sign.ARIES,
+                planets={FakePlanet.SUN: Sign.ARIES, FakePlanet.MOON: Sign.ARIES},
+            )
+        fake_divisional.calculate_divisional_chart = fake_divisional_factory
+
         fake_core = types.ModuleType("vedic_calc.core")
         fake_core.__path__ = []
         fake_constants = types.ModuleType("vedic_calc.core.constants")
@@ -82,6 +112,8 @@ class EngineAdapterTests(unittest.TestCase):
         )
         with patch.dict(sys.modules, {
             "vedic_calc": fake_package,
+            "vedic_calc.chart": fake_chart_pkg,
+            "vedic_calc.chart.divisional": fake_divisional,
             "vedic_calc.core": fake_core,
             "vedic_calc.core.constants": fake_constants,
         }):
@@ -93,6 +125,9 @@ class EngineAdapterTests(unittest.TestCase):
         self.assertEqual(result["planets"][-1]["planet"], "Ketu")
         self.assertTrue(result["planets"][-1]["retrograde"])
         self.assertEqual(result["vimshottari_mahadashas"][0]["lord"], "Jupiter")
+        self.assertEqual(len(result["divisional_charts"]), 16)
+        self.assertEqual(result["divisional_charts"]["D9"]["division"], 9)
+        self.assertEqual(result["divisional_charts"]["D60"]["planets"][0]["planet"], "Sun")
         self.assertEqual(result["birth"]["utc_datetime"], "1990-03-15T05:00:00+00:00")
 
 
