@@ -20,6 +20,7 @@ dependencies = [
 [project.optional-dependencies]
 test = ["pytest>=8,<9", "httpx2>=2,<3"]
 geo = ["timezonefinder>=9.2,<10", "timezonefinder-data==4.2026.6"]
+accuracy = ["jyotishganit==0.1.7"]
 
 [tool.setuptools.packages.find]
 where = ["."]
