@@ -10,7 +10,7 @@ The calculation dependency uses Swiss Ephemeris. Swiss Ephemeris is dual-license
 
 ## OpenStreetMap Nominatim
 
-The optional one-shot birthplace search uses the public Nominatim service only after a user submits a search. It is not autocomplete. The app must identify itself, stay under one request per second across the whole app, cache results, allow switching providers, and display “© OpenStreetMap contributors”. See https://operations.osmfoundation.org/policies/nominatim/. OSM data is provided under ODbL; do not bulk-download or resell results.
+The optional one-shot birthplace search uses the public Nominatim service only after a user submits a search. It is not autocomplete. The app must identify itself, stay under one request per second, cache results, and note that the in-memory limiter/cache in this starter is per process only; a multi-worker or multi-replica production deployment needs a shared limiter/cache, allow switching providers, and display “© OpenStreetMap contributors”. See https://operations.osmfoundation.org/policies/nominatim/. OSM data is provided under ODbL; do not bulk-download or resell results.
 
 ## timezonefinder / timezonefinder-data (optional)
 
