@@ -65,6 +65,7 @@ class Fixture:
     timezone: str
     latitude: float
     longitude: float
+    fold: int | None = None
 
 
 FIXTURES = (
@@ -72,6 +73,16 @@ FIXTURES = (
     Fixture("Karmala 1996", date(1996, 7, 4), time(9, 10), "Asia/Kolkata", 18.4040, 75.1950),
     Fixture("New York 1988", date(1988, 6, 15), time(12, 0), "America/New_York", 40.7128, -74.0060),
     Fixture("Jamnagar 2026", date(2026, 1, 2), time(17, 40), "Asia/Kolkata", 22.4707, 70.0577),
+    # Historical local-mean-time offset (includes seconds, not just minutes).
+    Fixture("Kolkata 1900", date(1900, 1, 15), time(12, 0), "Asia/Kolkata", 22.5726, 88.3639),
+    # Non-hour civil offset (+05:45).
+    Fixture("Kathmandu 2000", date(2000, 6, 1), time(8, 25), "Asia/Kathmandu", 27.7172, 85.3240),
+    # Southern hemisphere summer time and near the end of the DE421 time span.
+    Fixture("Sydney 2050", date(2050, 2, 15), time(7, 35), "Australia/Sydney", -33.8688, 151.2093),
+    # Date-line / large positive UTC offset; local midnight maps to the previous UTC date.
+    Fixture("Auckland 2001", date(2001, 1, 1), time(0, 30), "Pacific/Auckland", -36.8509, 174.7645),
+    # Second occurrence of a repeated wall-clock time when DST ends.
+    Fixture("New York DST fold", date(2025, 11, 2), time(1, 30), "America/New_York", 40.7128, -74.0060, fold=1),
 )
 
 CLASSICAL_PLANETS = ("Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn")
@@ -100,7 +111,7 @@ def calculate_fixture(fixture: Fixture, verbose: bool = True) -> tuple[bool, lis
     from app.timezones import resolve_local_birth
 
     local_birth, utc_birth, offset_hours = resolve_local_birth(
-        fixture.birth_date, fixture.birth_time, fixture.timezone
+        fixture.birth_date, fixture.birth_time, fixture.timezone, fixture.fold
     )
     local_naive = datetime.combine(fixture.birth_date, fixture.birth_time)
 
@@ -292,7 +303,7 @@ def calculate_fixture(fixture: Fixture, verbose: bool = True) -> tuple[bool, lis
                 )
 
     if verbose:
-        print(f"\n[{fixture.label}] {local_naive.isoformat()} {fixture.timezone} (UTC{offset_hours:+g})")
+        print(f"\n[{fixture.label}] {local_naive.isoformat()} {fixture.timezone} (UTC{offset_hours:+g}, fold={fixture.fold})")
         print(f"  UTC: {utc_birth.isoformat()}")
         print(f"  Ayanamsa: Skyfield={jg_ayanamsa:.6f}°  Swiss={se_ayanamsa:.6f}°  Δ={ayanamsa_diff:.6f}°")
         print(f"  Ascendant: Skyfield={reference_asc:.6f}°  Swiss={swiss_asc:.6f}°  Δ={asc_diff:.6f}°")
