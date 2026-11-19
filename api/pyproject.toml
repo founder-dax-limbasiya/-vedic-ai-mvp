@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vedic-ai-api"
+version = "0.1.0"
+description = "API for a privacy-first Vedic astrology PWA"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "AGPL-3.0-or-later" }
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.30,<1",
+  "pydantic>=2.8,<3",
+  "tzdata>=2025.1",
+  "vedic-calc @ git+https://github.com/atolat/vedic-calc.git@620d54560ee7e108496495eeb17054a52630a0bf",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<9", "httpx>=0.27,<1"]
+geo = ["timezonefinder>=9.2,<10"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
