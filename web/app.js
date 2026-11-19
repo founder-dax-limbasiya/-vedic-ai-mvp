@@ -30,6 +30,14 @@ function formatDate(value) {
   return new Intl.DateTimeFormat(undefined, {year:"numeric",month:"short",day:"numeric"}).format(date);
 }
 
+function todayInTimezone(timeZone) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone, year:"numeric", month:"2-digit", day:"2-digit"
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
 function showError(message) {
   errorBox.textContent = message;
   errorBox.hidden = false;
@@ -49,7 +57,7 @@ function renderVarga(chart, code) {
 
 function renderChart(chart) {
   lastChart = chart;
-  if (!get("daily-date").value) get("daily-date").value = dateToday;
+  get("daily-date").value = todayInTimezone(chart.birth.timezone);
   get("asc-sign").textContent = chart.ascendant.sign;
   get("asc-detail").textContent = `${chart.ascendant.degree_in_sign.toFixed(2)}° · ${chart.ascendant.nakshatra} · Pada ${chart.ascendant.pada}`;
   get("meta-grid").innerHTML = [
