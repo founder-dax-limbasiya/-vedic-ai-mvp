@@ -17,6 +17,16 @@ class TimezoneResolutionTests(unittest.TestCase):
         self.assertEqual(utc, local.astimezone(timezone.utc))
         self.assertEqual(utc.isoformat(), "1990-03-15T05:00:00+00:00")
 
+
+    def test_historical_kolkata_railway_offset_preserves_seconds(self):
+        # The IANA Asia/Kolkata record uses Madras railway time (+05:21:10)
+        # for 1870–1941; historical city clocks also varied by institution.
+        _, utc, offset = resolve_local_birth(
+            date(1900, 1, 15), time(12, 0), "Asia/Kolkata"
+        )
+        self.assertAlmostEqual(offset, 5 + 21 / 60 + 10 / 3600, places=8)
+        self.assertEqual(utc.isoformat(), "1900-01-15T06:38:50+00:00")
+
     def test_new_york_nonexistent_spring_time_rejected(self):
         with self.assertRaises(NonexistentLocalTimeError):
             resolve_local_birth(date(2026, 3, 8), time(2, 30), "America/New_York")
