@@ -49,6 +49,7 @@ function renderVarga(chart, code) {
 
 function renderChart(chart) {
   lastChart = chart;
+  if (!get("daily-date").value) get("daily-date").value = dateToday;
   get("asc-sign").textContent = chart.ascendant.sign;
   get("asc-detail").textContent = `${chart.ascendant.degree_in_sign.toFixed(2)}° · ${chart.ascendant.nakshatra} · Pada ${chart.ascendant.pada}`;
   get("meta-grid").innerHTML = [
@@ -137,6 +138,51 @@ form.addEventListener("submit", async (event) => {
 
 get("division-select").addEventListener("change", () => {
   if (lastChart) renderVarga(lastChart, get("division-select").value);
+});
+
+
+get("load-daily-panchanga").addEventListener("click", async () => {
+  if (!lastChart) return;
+  const button = get("load-daily-panchanga");
+  const error = get("daily-panchanga-error");
+  error.hidden = true;
+  button.disabled = true;
+  button.textContent = "Loading…";
+  try {
+    const response = await fetch(`${API_BASE}/v1/panchanga`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        calendar_date: get("daily-date").value,
+        timezone: lastChart.birth.timezone,
+        latitude: lastChart.birth.latitude,
+        longitude: lastChart.birth.longitude
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const detail = data.detail;
+      throw new Error(typeof detail === "string" ? detail : (detail?.message || `Request failed (${response.status})`));
+    }
+    const items = [
+      ["Vara", data.vara],
+      ["Tithi", data.tithi_name],
+      ["Nakshatra", data.nakshatra],
+      ["Yoga", data.yoga_name],
+      ["Karana", data.karana_name]
+    ];
+    get("daily-panchanga-grid").innerHTML = items.map(([label,value]) => `
+      <div class="panchanga-item"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value || "Not available")}</strong></div>`).join("");
+    const sunrise = data.sunrise_local ? data.sunrise_local.replace("T", " ") : "Unavailable";
+    const sunset = data.sunset_local ? data.sunset_local.replace("T", " ") : "Unavailable";
+    get("daily-sunrise-sunset").textContent = `${data.calculation_time} · Sunrise: ${sunrise} · Sunset: ${sunset} · ${data.timezone}`;
+  } catch (err) {
+    error.textContent = err.message || "Could not load the daily Panchanga.";
+    error.hidden = false;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Load Panchanga";
+  }
 });
 
 get("new-chart").addEventListener("click", () => {
