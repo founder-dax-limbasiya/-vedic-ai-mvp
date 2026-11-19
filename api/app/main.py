@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from .engine import generate_chart
+from .engine import generate_chart, generate_daily_panchanga
 from .location_timezone import timezone_at
 from .place_search import PlaceSearchUnavailable, search_places
 from .schemas import ChartRequest, DailyPanchangaRequest
@@ -102,22 +102,16 @@ def daily_panchanga(payload: DailyPanchangaRequest) -> dict[str, object]:
         ) from exc
 
     try:
-        from vedic_calc import calculate_panchanga
-        from vedic_calc.core.constants import Ayanamsa
-
-        panchanga = calculate_panchanga(
-            year=payload.calendar_date.year,
-            month=payload.calendar_date.month,
-            day=payload.calendar_date.day,
-            latitude=payload.latitude,
-            longitude=payload.longitude,
-            timezone_offset=offset_hours,
-            ayanamsa=Ayanamsa.LAHIRI,
+        result = generate_daily_panchanga(
+            payload.calendar_date,
+            payload.latitude,
+            payload.longitude,
+            offset_hours,
         )
-    except ImportError as exc:
+    except RuntimeError as exc:
         raise HTTPException(
             status_code=503,
-            detail={"code": "engine_unavailable", "message": "The pinned Vedic calculation engine is not installed."},
+            detail={"code": "engine_unavailable", "message": str(exc)},
         ) from exc
     except Exception as exc:
         raise HTTPException(
@@ -126,23 +120,10 @@ def daily_panchanga(payload: DailyPanchangaRequest) -> dict[str, object]:
         ) from exc
 
     return {
-        "date": payload.calendar_date.isoformat(),
+        **result,
         "timezone": payload.timezone,
-        "utc_offset_hours": offset_hours,
         "latitude": payload.latitude,
         "longitude": payload.longitude,
-        "ayanamsa": "lahiri",
-        "calculation_time": "Local sunrise" if panchanga.sunrise else "Solar-noon fallback (sunrise unavailable)",
-        "vara": panchanga.vara,
-        "tithi_number": int(panchanga.tithi_number),
-        "tithi_name": panchanga.tithi_name,
-        "nakshatra": panchanga.nakshatra.name.title(),
-        "yoga_number": int(panchanga.yoga_number),
-        "yoga_name": panchanga.yoga_name,
-        "karana_number": int(panchanga.karana_number),
-        "karana_name": panchanga.karana_name,
-        "sunrise_local": panchanga.sunrise.isoformat() if panchanga.sunrise else None,
-        "sunset_local": panchanga.sunset.isoformat() if panchanga.sunset else None,
     }
 
 
