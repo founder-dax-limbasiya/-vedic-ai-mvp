@@ -1,0 +1,159 @@
+"""Adapter around existing Vedic calculation code; no planetary maths here."""
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from threading import RLock
+from typing import Any
+
+import swisseph as swe
+
+from .schemas import ChartRequest
+
+_ENGINE_LOCK = RLock()  # Swiss Ephemeris exposes process-global sidereal settings.
+_AYANAMSA_NAMES = {
+    "lahiri": "LAHIRI",
+    "raman": "RAMAN",
+    "kp": "KP",
+    "true_chitrapaksha": "TRUE_CHITRAPAKSHA",
+}
+_PLANET_SWISS_IDS = {
+    "SUN": swe.SUN,
+    "MOON": swe.MOON,
+    "MARS": swe.MARS,
+    "MERCURY": swe.MERCURY,
+    "JUPITER": swe.JUPITER,
+    "VENUS": swe.VENUS,
+    "SATURN": swe.SATURN,
+    "RAHU": swe.MEAN_NODE,
+}
+
+
+def _ephemeris_name(return_flags: int) -> str:
+    if return_flags & swe.FLG_JPLEPH:
+        return "JPL"
+    if return_flags & swe.FLG_SWIEPH:
+        return "Swiss Ephemeris"
+    if return_flags & swe.FLG_MOSEPH:
+        return "Moshier analytical fallback"
+    return "Unknown"
+
+
+def _julian_day_utc(utc_dt: datetime) -> float:
+    utc = utc_dt.astimezone(timezone.utc)
+    hour = utc.hour + utc.minute / 60.0 + utc.second / 3600.0 + utc.microsecond / 3_600_000_000.0
+    return swe.julday(utc.year, utc.month, utc.day, hour)
+
+
+def _position_payload(name: str, position: Any, retrograde: bool | None) -> dict[str, Any]:
+    nak = position.nakshatra_info
+    return {
+        "planet": name.title(),
+        "longitude": round(float(position.longitude), 6),
+        "sign": position.sign.name.title(),
+        "degree_in_sign": round(float(position.degree_in_sign), 4),
+        "nakshatra": nak.nakshatra.name.title(),
+        "pada": int(nak.pada),
+        "nakshatra_lord": nak.lord.name.title(),
+        "retrograde": bool(position.is_retrograde if retrograde is None else retrograde),
+    }
+
+
+def generate_chart(
+    request: ChartRequest,
+    local_birth: datetime,
+    utc_birth: datetime,
+    timezone_offset: float,
+) -> dict[str, Any]:
+    """Call the reused engine and add explicit ephemeris/speed diagnostics."""
+    try:
+        from vedic_calc import calculate_chart, calculate_dasha
+        from vedic_calc.core.constants import Ayanamsa, Planet
+    except ImportError as exc:
+        raise RuntimeError(
+            "The pinned vedic-calc dependency is not installed. Run `pip install -e api`."
+        ) from exc
+
+    ayanamsa = Ayanamsa[_AYANAMSA_NAMES[request.ayanamsa]]
+    # Keep sidereal-mode changes, chart generation and diagnostics in one
+    # critical section because pyswisseph maintains process-global settings.
+    with _ENGINE_LOCK:
+        chart = calculate_chart(
+            year=local_birth.year,
+            month=local_birth.month,
+            day=local_birth.day,
+            hour=local_birth.hour,
+            minute=local_birth.minute,
+            second=local_birth.second,
+            latitude=request.latitude,
+            longitude=request.longitude,
+            timezone_offset=timezone_offset,
+            ayanamsa=ayanamsa,
+        )
+        jd_ut = _julian_day_utc(utc_birth)
+        retrograde_by_planet: dict[str, bool] = {"KETU": True}
+        ephemeris_by_planet: dict[str, str] = {}
+        for planet_name, swiss_id in _PLANET_SWISS_IDS.items():
+            _, source_flags = swe.calc_ut(jd_ut, swiss_id, 0)
+            speed_values, speed_flags = swe.calc_ut(jd_ut, swiss_id, swe.FLG_SPEED)
+            retrograde_by_planet[planet_name] = float(speed_values[3]) < 0.0
+            ephemeris_by_planet[planet_name] = _ephemeris_name(source_flags)
+            if _ephemeris_name(speed_flags) != ephemeris_by_planet[planet_name]:
+                ephemeris_by_planet[planet_name] += " (speed-source differs)"
+
+        retrograde_by_planet["RAHU"] = True
+
+        planets = []
+        for planet_enum, position in chart.planets.items():
+            name = planet_enum.name
+            planets.append(_position_payload(name, position, retrograde_by_planet.get(name)))
+        planets.sort(key=lambda item: [
+            "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"
+        ].index(item["planet"]))
+
+        houses = [
+            {
+                "house": int(house.house_number),
+                "sign": house.sign.name.title(),
+                "lord": house.lord.name.title(),
+            }
+            for house in chart.houses
+        ]
+        ascendant = _position_payload("ASCENDANT", chart.ascendant, False)
+        dashas = calculate_dasha(chart, levels=1)
+        dasha_payload = [
+            {
+                "lord": period.lord.name.title(),
+                "start_local": period.start.isoformat(),
+                "end_local": period.end.isoformat(),
+                "duration_years": round(float(period.duration_years), 4),
+            }
+            for period in dashas
+            if period.level == "mahadasha"
+        ]
+
+    return {
+        "calculation": {
+            "engine": "vedic-calc",
+            "engine_commit": "620d54560ee7e108496495eeb17054a52630a0bf",
+            "ephemeris_by_planet": ephemeris_by_planet,
+            "retrograde_speed_flag": "SEFLG_SPEED",
+            "disclaimer": "Ephemeris source is reported per planet. If Moshier appears, Swiss Ephemeris data files were unavailable for that body and its analytical fallback was used.",
+        },
+        "birth": {
+            "local_datetime": local_birth.isoformat(),
+            "utc_datetime": utc_birth.isoformat(),
+            "timezone": request.timezone,
+            "utc_offset_hours": timezone_offset,
+            "latitude": request.latitude,
+            "longitude": request.longitude,
+        },
+        "settings": {
+            "ayanamsa": request.ayanamsa,
+            "house_system": "Whole Sign",
+        },
+        "ayanamsa_degrees": round(float(chart.ayanamsa_degrees), 6),
+        "ascendant": ascendant,
+        "planets": planets,
+        "houses": houses,
+        "vimshottari_mahadashas": dasha_payload,
+    }
