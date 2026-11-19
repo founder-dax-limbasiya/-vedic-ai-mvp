@@ -214,3 +214,44 @@ def generate_chart(
         "vimshottari_mahadashas": dasha_payload,
         "divisional_charts": divisional_payload,
     }
+
+
+def generate_daily_panchanga(
+    calendar_date: Any,
+    latitude: float,
+    longitude: float,
+    timezone_offset: float,
+) -> dict[str, Any]:
+    """Calculate daily Panchanga at local sunrise under the shared ephemeris lock."""
+    try:
+        from vedic_calc import calculate_panchanga
+        from vedic_calc.core.constants import Ayanamsa
+    except ImportError as exc:
+        raise RuntimeError("The pinned vedic-calc dependency is not installed.") from exc
+
+    with _ENGINE_LOCK:
+        panchanga = calculate_panchanga(
+            year=calendar_date.year,
+            month=calendar_date.month,
+            day=calendar_date.day,
+            latitude=latitude,
+            longitude=longitude,
+            timezone_offset=timezone_offset,
+            ayanamsa=Ayanamsa.LAHIRI,
+        )
+        return {
+            "date": calendar_date.isoformat(),
+            "utc_offset_hours": timezone_offset,
+            "ayanamsa": "lahiri",
+            "calculation_time": "Local sunrise" if panchanga.sunrise else "Solar-noon fallback (sunrise unavailable)",
+            "vara": panchanga.vara,
+            "tithi_number": int(panchanga.tithi_number),
+            "tithi_name": panchanga.tithi_name,
+            "nakshatra": panchanga.nakshatra.name.title(),
+            "yoga_number": int(panchanga.yoga_number),
+            "yoga_name": panchanga.yoga_name,
+            "karana_number": int(panchanga.karana_number),
+            "karana_name": panchanga.karana_name,
+            "sunrise_local": panchanga.sunrise.isoformat() if panchanga.sunrise else None,
+            "sunset_local": panchanga.sunset.isoformat() if panchanga.sunset else None,
+        }
