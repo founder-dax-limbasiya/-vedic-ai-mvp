@@ -67,6 +67,7 @@ def generate_chart(
     """Call the reused engine and add explicit ephemeris/speed diagnostics."""
     try:
         from vedic_calc import calculate_chart, calculate_dasha
+        from vedic_calc.chart.divisional import calculate_divisional_chart
         from vedic_calc.core.constants import Ayanamsa, Planet
     except ImportError as exc:
         raise RuntimeError(
@@ -131,6 +132,36 @@ def generate_chart(
             if period.level == "mahadasha"
         ]
 
+        # Generate the 15 standard divisional charts supported by the
+        # pinned engine. D1 is added from the already-calculated birth chart.
+        divisional_payload: dict[str, Any] = {
+            "D1": {
+                "division": 1,
+                "name": "Rasi",
+                "ascendant_sign": chart.ascendant.sign.name.title(),
+                "planets": [
+                    {"planet": planet.name.title(), "sign": position.sign.name.title()}
+                    for planet, position in sorted(
+                        chart.planets.items(), key=lambda item: item[0].value
+                    )
+                ],
+            }
+        }
+        standard_divisions = (2, 3, 4, 7, 9, 10, 12, 16, 20, 24, 27, 30, 40, 45, 60)
+        for division in standard_divisions:
+            varga = calculate_divisional_chart(chart, division)
+            divisional_payload[f"D{division}"] = {
+                "division": int(varga.division),
+                "name": str(varga.name),
+                "ascendant_sign": varga.ascendant_sign.name.title(),
+                "planets": [
+                    {"planet": planet.name.title(), "sign": sign.name.title()}
+                    for planet, sign in sorted(
+                        varga.planets.items(), key=lambda item: item[0].value
+                    )
+                ],
+            }
+
     return {
         "calculation": {
             "engine": "vedic-calc",
@@ -156,4 +187,5 @@ def generate_chart(
         "planets": planets,
         "houses": houses,
         "vimshottari_mahadashas": dasha_payload,
+        "divisional_charts": divisional_payload,
     }
