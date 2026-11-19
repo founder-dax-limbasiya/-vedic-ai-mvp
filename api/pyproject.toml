@@ -19,7 +19,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest>=8,<9", "httpx>=0.27,<1"]
-geo = ["timezonefinder>=9.2,<10"]
+geo = ["timezonefinder>=9.2,<10", "timezonefinder-data==4.2026.6"]
 
 [tool.setuptools.packages.find]
 where = ["."]
