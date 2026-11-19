@@ -57,22 +57,6 @@ class EngineAdapterTests(unittest.TestCase):
             ascendant=Position(None),
             ayanamsa_degrees=23.7,
         )
-        class DivisionalPlanet(IntEnum):
-            SUN = 0
-            MOON = 1
-        class DivisionalSign(IntEnum):
-            ARIES = 1
-            TAURUS = 2
-        def fake_divisional(chart_arg, division):
-            return SimpleNamespace(
-                division=division,
-                name=f"Division {division}",
-                ascendant_sign=DivisionalSign.ARIES,
-                planets={
-                    DivisionalPlanet.SUN: DivisionalSign.ARIES,
-                    DivisionalPlanet.MOON: DivisionalSign.TAURUS,
-                },
-            )
         dasha = [SimpleNamespace(
             level="mahadasha", lord=FakePlanet.JUPITER,
             start=datetime(1990, 1, 1), end=datetime(2006, 1, 1), duration_years=16.0
@@ -85,14 +69,12 @@ class EngineAdapterTests(unittest.TestCase):
         fake_chart_pkg = types.ModuleType("vedic_calc.chart")
         fake_chart_pkg.__path__ = []
         fake_divisional = types.ModuleType("vedic_calc.chart.divisional")
-        fake_divisional.calculate_divisional_chart = fake_divisional if False else lambda chart_arg, division: fake_divisional_chart(chart_arg, division)
-        fake_divisional_chart = fake_divisional_factory if False else fake_divisional
         def fake_divisional_factory(chart_arg, division):
             return SimpleNamespace(
                 division=division,
                 name=f"Division {division}",
                 ascendant_sign=Sign.ARIES,
-                planets={FakePlanet.SUN: Sign.ARIES, FakePlanet.MOON: Sign.ARIES},
+                planets={planet: Sign.ARIES for planet in FakePlanet},
             )
         fake_divisional.calculate_divisional_chart = fake_divisional_factory
 
