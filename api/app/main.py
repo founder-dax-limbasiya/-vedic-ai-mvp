@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import os
-from zoneinfo import available_timezones
+from datetime import datetime
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -59,6 +60,12 @@ def timezones(q: str = "") -> dict[str, list[str]]:
 
 @app.post("/v1/chart")
 def create_chart(payload: ChartRequest) -> dict[str, object]:
+    try:
+        birth_zone = ZoneInfo(payload.timezone)
+    except (ZoneInfoNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail={"code": "invalid_timezone", "message": "Unknown IANA timezone. Example: Asia/Kolkata"}) from exc
+    if payload.birth_date > datetime.now(birth_zone).date():
+        raise HTTPException(status_code=422, detail={"code": "future_birth_date", "message": "Birth date cannot be in the future."})
     try:
         local_birth, utc_birth, offset_hours = resolve_local_birth(
             payload.birth_date, payload.birth_time, payload.timezone, payload.fold
