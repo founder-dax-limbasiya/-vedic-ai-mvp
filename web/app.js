@@ -35,6 +35,18 @@ function showError(message) {
   errorBox.hidden = false;
 }
 
+function renderVarga(chart, code) {
+  const varga = chart.divisional_charts?.[code];
+  if (!varga) {
+    get("division-summary").textContent = "This divisional chart is unavailable in the calculation response.";
+    get("varga-rows").innerHTML = "";
+    return;
+  }
+  get("division-summary").textContent = `${code} · ${varga.name} · Ascendant: ${varga.ascendant_sign}`;
+  get("varga-rows").innerHTML = varga.planets.map((planet) => `
+    <tr><td>${escapeHtml(planet.planet)}</td><td>${escapeHtml(planet.sign)}</td></tr>`).join("");
+}
+
 function renderChart(chart) {
   lastChart = chart;
   get("asc-sign").textContent = chart.ascendant.sign;
@@ -58,6 +70,16 @@ function renderChart(chart) {
 
   get("dasha-list").innerHTML = chart.vimshottari_mahadashas.map((period) => `
     <div class="dasha-row"><strong>${escapeHtml(period.lord)}</strong><span>${formatDate(period.start_local)} – ${formatDate(period.end_local)}</span></div>`).join("");
+
+  const divisionSelect = get("division-select");
+  const divisionalCharts = chart.divisional_charts || {};
+  const divisionCodes = Object.keys(divisionalCharts).sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
+  divisionSelect.innerHTML = divisionCodes.map((code) => {
+    const item = divisionalCharts[code];
+    return `<option value="${escapeHtml(code)}">${escapeHtml(code)} · ${escapeHtml(item.name)}</option>`;
+  }).join("");
+  divisionSelect.value = divisionCodes.includes("D1") ? "D1" : (divisionCodes[0] || "");
+  if (divisionSelect.value) renderVarga(chart, divisionSelect.value);
 
   const sources = Object.entries(chart.calculation.ephemeris_by_planet || {});
   const sourceNames = [...new Set(sources.map(([, source]) => source))];
@@ -97,6 +119,10 @@ form.addEventListener("submit", async (event) => {
     submitButton.disabled = false;
     submitButton.querySelector("span:first-child").textContent = "Calculate my birth chart";
   }
+});
+
+get("division-select").addEventListener("change", () => {
+  if (lastChart) renderVarga(lastChart, get("division-select").value);
 });
 
 get("new-chart").addEventListener("click", () => {
