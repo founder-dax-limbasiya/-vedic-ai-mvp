@@ -2,37 +2,40 @@
 
 Last checked: 2026-11-19
 
-## Implemented in this starter
+## Implemented
 
-- Mobile-first installable PWA shell.
-- FastAPI endpoints for health, IANA timezone lookup, chart generation adapter, optional one-shot place search, and coordinate-to-timezone lookup.
-- Date-aware IANA timezone conversion; nonexistent DST times are rejected and ambiguous DST times require the user to select an occurrence.
-- Integration adapter that calls the pinned `vedic-calc` functions `calculate_chart()` and `calculate_dasha()` rather than reimplementing their chart mathematics.
-- Independent Swiss Ephemeris speed calls using `SEFLG_SPEED` to avoid the upstream speed-flag issue in retrograde labels.
-- Per-planet source reporting for Swiss Ephemeris / JPL / Moshier fallback.
-- No saved birth profiles, account database, payment collection, or AI provider yet.
-- Initial public GitHub repository created and starter files pushed to `founder-dax-limbasiya/-vedic-ai-mvp`.
+- Mobile-first installable PWA shell with chart input, result display and JSON export.
+- FastAPI endpoints for health, IANA timezone list, chart generation, optional one-shot place search, and coordinate-to-timezone lookup.
+- Birthplace-local date/time conversion using IANA timezone history; nonexistent DST times are rejected and ambiguous DST times require the user to choose an occurrence.
+- Future birth dates are rejected using the birth-place timezone.
+- Offline coordinate-to-timezone lookup using `timezonefinder>=9.2,<10` and pinned `timezonefinder-data==4.2026.6`.
+- Integration adapter calls pinned `vedic-calc` `calculate_chart()` and `calculate_dasha()`; no chart formulas have been reimplemented in the app.
+- Independent Swiss Ephemeris speed calls use `SEFLG_SPEED` for retrograde labels and report per-planet ephemeris source.
+- No account database, saved birth profiles, payments, report purchasing or AI interpretation provider.
 
-## Checks reported from the authoring environment
+## Verified in GitHub Actions
 
-- 12 Python unit tests: passed.
-- Python bytecode compilation: passed.
-- FastAPI smoke checks: `/health`, timezone filtering, and truthful `503 engine_unavailable` response when the chart dependency is absent: passed.
-- `node --check` for the PWA application script: passed.
-- PWA manifest JSON and API `pyproject.toml` parsing: passed.
+- Pinned `vedic-calc` Git commit installed successfully from GitHub.
+- Optional timezonefinder engine and pinned boundary dataset installed successfully.
+- 16 Python tests passed, including a real end-to-end chart generation test, coordinate-to-timezone test for Jamnagar, retrograde speed-flag check, API validation and DST edge cases.
+- `node --check` passed for PWA app, config and service-worker scripts.
+- PWA manifest JSON and Python `pyproject.toml` parsed successfully.
 
-## Not verified / not done
+Latest fully green workflow for the above verification: https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions/runs/44502080104
 
-- Installing the pinned `vedic-calc` dependency failed in the authoring environment because GitHub's hostname could not be resolved there.
-- Therefore, a real `vedic-calc` birth chart has **not** been generated end-to-end in that environment. The adapter is mock-tested only.
+## Not yet verified / not done
+
+- Planetary positions, ascendant, nakshatra, divisional charts and dashas have not yet been cross-validated against two independent, convention-matched astrology engines/reference datasets.
+- Retrograde status uses a separate `SEFLG_SPEED` call to correct an upstream issue, but exact station-time edge cases still need dedicated fixture validation.
 - No public deployment has been performed.
-- AI interpretations, user accounts, cloud sync, payments, report purchasing and multi-language content are not implemented.
+- AI interpretations, accounts, cloud sync, payments, paid reports, analytics and multilingual content are not implemented.
+- No complete SBOM or formal legal review has been completed.
 
 ## Release blockers
 
-1. Install the exact pinned engine in an environment with package access.
-2. Run reference birth charts against at least two independent calculators / reference datasets, with ayanamsa, node and house conventions explicitly matched.
-3. Test historical timezone rules and boundary cases, including DST folds, date-line transitions and unknown birth times.
-4. Generate and review a full SBOM and all source/data licences.
-5. Before public AGPL network deployment, publish the complete corresponding source and set `SOURCE_URL` in `web/config.js`.
-6. Add abuse controls and operational monitoring before moving beyond a closed beta.
+1. Validate reference birth charts against at least two independent calculators/reference datasets; explicitly align ayanamsa, node type, house system, time handling and ephemeris source.
+2. Add known fixtures for historical timezones, date-line boundaries, unknown/approximate birth times and near-stationary retrograde planets.
+3. Generate and review an SBOM and all source/data licence notices, especially AGPL and timezonefinder-data ODbL obligations.
+4. Before public AGPL network deployment, provide the complete corresponding source and keep `SOURCE_URL` accurate in `web/config.js`.
+5. Add API rate limits, shared Nominatim throttle/cache for multi-instance deployments, error monitoring and abuse controls before expanding beyond a closed beta.
+6. Validate user demand and repeat use before implementing subscriptions or expanding into other astrology traditions.
