@@ -12,7 +12,7 @@ import argparse
 import os
 import sys
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from typing import Any
 
 # The official CDS host for Skyfield's Hipparcos file was reported unavailable
@@ -47,6 +47,13 @@ AYANAMSA_TOLERANCE = 0.05
 CLASSICAL_PLANET_TOLERANCE = 0.10
 NODE_TOLERANCE = 0.15
 DASHA_BOUNDARY_TOLERANCE_DAYS = 2.0
+VIMSHOTTARI_ORDER = ("Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury")
+VIMSHOTTARI_YEARS = {
+    "Ketu": 7, "Venus": 20, "Sun": 6, "Moon": 10, "Mars": 7,
+    "Rahu": 18, "Jupiter": 16, "Saturn": 19, "Mercury": 17,
+}
+REFERENCE_DASHA_YEAR_DAYS = 365.25636
+NAKSHATRA_SPAN = 360.0 / 27.0
 ASCENDANT_TOLERANCE = 0.15
 
 
@@ -201,28 +208,69 @@ def calculate_fixture(fixture: Fixture, verbose: bool = True) -> tuple[bool, lis
             "placements_checked": len(CLASSICAL_PLANETS) + len(NODES) + 1,
         }
 
+    # Derive the reference Mahadasha schedule from the independent JPL
+    # engine's own D1 Moon longitude. Do not consume jyotishganit's built-in
+    # dasha dates here: its current Vimshottari helper obtains the Moon through
+    # Skyfield's default ecliptic_latlon() frame, while its D1 path uses the
+    # true ecliptic/equinox-of-date helper. That frame mismatch shifts the
+    # dasha balance even though the D1 positions agree.
+    reference_moon = next(
+        planet for planet in reference_chart.d1_chart.planets
+        if planet.celestial_body == "Moon"
+    )
+    reference_moon_lon = (
+        SIGN_INDEX[str(reference_moon.sign).strip().lower()] * 30.0
+        + float(reference_moon.sign_degrees)
+    ) % 360.0
+    reference_nakshatra_index = int(reference_moon_lon / NAKSHATRA_SPAN)
+    reference_nakshatra_progress = reference_moon_lon % NAKSHATRA_SPAN
+    reference_starting_lord = VIMSHOTTARI_ORDER[
+        reference_nakshatra_index % len(VIMSHOTTARI_ORDER)
+    ]
+    reference_sequence = list(VIMSHOTTARI_ORDER)
+    start_index = reference_sequence.index(reference_starting_lord)
+    reference_sequence = reference_sequence[start_index:] + reference_sequence[:start_index]
+
+    elapsed_fraction = reference_nakshatra_progress / NAKSHATRA_SPAN
+    reference_first_duration_days = (
+        VIMSHOTTARI_YEARS[reference_starting_lord] * REFERENCE_DASHA_YEAR_DAYS
+    )
+    reference_start = local_naive - timedelta(
+        days=reference_first_duration_days * elapsed_fraction
+    )
+    reference_mahadashas = []
+    current_reference_start = reference_start
+    for lord in reference_sequence:
+        duration_days = VIMSHOTTARI_YEARS[lord] * REFERENCE_DASHA_YEAR_DAYS
+        current_reference_end = current_reference_start + timedelta(days=duration_days)
+        reference_mahadashas.append({
+            "lord": lord,
+            "start": current_reference_start,
+            "end": current_reference_end,
+        })
+        current_reference_start = current_reference_end
+
     # Compare the nine Mahadasha lords and their start/end boundaries.
-    # The two projects use slightly different year-length constants (sidereal
-    # 365.25636 vs 365.25 days), so allow a documented 2-day screening window.
-    reference_mahadashas = reference_chart.dashas.all.get("mahadashas", {})
-    reference_dasha_lords = list(reference_mahadashas.keys())
+    # The reference uses a sidereal year (365.25636 days); vedic-calc uses
+    # 365.25 days, so allow a documented 2-day screening window.
     swiss_mahadashas = [
         period for period in calculate_dasha(swiss_chart, levels=1)
         if period.level == "mahadasha"
     ]
     swiss_dasha_lords = [period.lord.name.title() for period in swiss_mahadashas]
+    reference_dasha_lords = [period["lord"] for period in reference_mahadashas]
     dasha_max_boundary_difference = 0.0
     dasha_sequence_matches = reference_dasha_lords == swiss_dasha_lords
     if not dasha_sequence_matches:
         failures.append(
             f"Mahadasha lord sequence mismatch: "
-            f"Skyfield={reference_dasha_lords}, Swiss={swiss_dasha_lords}"
+            f"Skyfield-D1={reference_dasha_lords}, Swiss={swiss_dasha_lords}"
         )
     elif len(reference_dasha_lords) != 9 or len(swiss_mahadashas) != 9:
         failures.append("Expected nine Mahadasha periods from each engine")
     else:
-        for lord, swiss_period in zip(reference_dasha_lords, swiss_mahadashas):
-            reference_period = reference_mahadashas[lord]
+        for reference_period, swiss_period in zip(reference_mahadashas, swiss_mahadashas):
+            lord = reference_period["lord"]
             start_delta = abs(
                 (reference_period["start"] - swiss_period.start).total_seconds()
             ) / 86400.0
