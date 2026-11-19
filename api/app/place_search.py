@@ -20,6 +20,8 @@ class PlaceSearchUnavailable(RuntimeError):
     pass
 
 
+# Process-local cache and throttle. Production multi-worker/multi-replica deployments
+# must replace this with a shared cache/rate limiter before enabling public Nominatim.
 _CACHE: OrderedDict[str, list[dict[str, object]]] = OrderedDict()
 _LOCK = threading.Lock()
 _LAST_REQUEST_AT = 0.0
