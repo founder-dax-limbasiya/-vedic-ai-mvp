@@ -60,6 +60,14 @@ The GitHub Actions run [44504070247](https://github.com/founder-dax-limbasiya/-v
 
 These values describe only the four fixtures in this repository and the exact engine versions/settings used by that run. They are not a statement of universal astronomical accuracy, nor do they validate divisional charts, dashas or interpretation outputs.
 
+## Vimshottari comparison method
+
+The independent JPL engine's built-in Vimshottari helper is **not** used as the comparison target. Code inspection shows it gets the Moon with Skyfield's default `ecliptic_latlon()`, while the JPL engine's D1 chart path uses its explicit true ecliptic/equinox-of-date frame conversion. Those are different coordinate frames, and the package's own Dasha helper can therefore produce a materially different birth-nakshatra balance from its own D1 Moon placement.
+
+To avoid comparing one engine's D1 output against a different coordinate path inside that same engine, the harness derives the reference Vimshottari schedule from the JPL engine's D1 Moon sign and degree. It applies the standard 27 equal nakshatra divisions, the nine-lord sequence and the reference engine's sidereal-year duration (365.25636 days). This is then compared with the pinned Swiss engine's Mahadasha periods (which uses 365.25 days).
+
+A three-day boundary tolerance is used as a screening limit to account for both the small observed inter-engine Moon-longitude difference and the small year-length difference. It is not a licence to ignore larger discrepancies. The harness still prints the maximum observed boundary difference for each fixture. This check validates the Mahadasha calculation from each engine's D1 Moon result; it does not validate antardasha/pratyantardasha or prove an astrological interpretation.
+
 ## Current scope
 
 This tool compares D1 longitudes, ascendant and ayanamsa only. It does not validate divisional charts, house lord interpretations, shadbala, yogas, doshas, panchanga transitions or dasha period start/end dates. Those need separate convention-matched fixtures before production release.
