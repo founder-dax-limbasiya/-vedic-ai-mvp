@@ -68,6 +68,12 @@ To avoid comparing one engine's D1 output against a different coordinate path in
 
 A three-day boundary tolerance is used as a screening limit to account for both the small observed inter-engine Moon-longitude difference and the small year-length difference. It is not a licence to ignore larger discrepancies. The harness still prints the maximum observed boundary difference for each fixture. This check validates the Mahadasha calculation from each engine's D1 Moon result; it does not validate antardasha/pratyantardasha or prove an astrological interpretation.
 
+## Latest result — 2026-11-19
+
+The successful GitHub Actions run [44505569050](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions/runs/44505569050) passed all four fixtures. Across the four samples, maximum D1 differences were 0.003434° for ayanamsa, 0.002613° for ascendant and 0.003613° for planetary longitudes. All 15 shared divisional charts had zero mismatches for the nine planets and ascendant in each fixture (600 discrete sign placements in total). The nine Mahadasha lords matched in order and the maximum start/end boundary difference was 2.478 days against the three-day screening tolerance.
+
+These values apply only to the four fixtures and exact pinned engine versions/settings in this run. They are not a universal astronomical accuracy certification, and they do not validate antardashas, pratyantardashas, panchanga transitions or interpretations.
+
 ## Current scope
 
 This tool compares D1 longitudes, ascendant and ayanamsa only. It does not validate divisional charts, house lord interpretations, shadbala, yogas, doshas, panchanga transitions or dasha period start/end dates. Those need separate convention-matched fixtures before production release.

@@ -4,11 +4,12 @@ A mobile-first, privacy-conscious Vedic birth-chart PWA with a Python API. “Jy
 
 ## Current scope
 - Vedic birth chart integration through the open-source `vedic-calc` library.
-- D1 / Rashi placements, ascendant, whole-sign houses, nakshatra/pada and Vimshottari dasha.
+- D1 / Rashi placements, ascendant, whole-sign houses, nakshatra/pada and Vimshottari Mahadasha.
+- D1 plus 15 standard divisional charts: D2, D3, D4, D7, D9, D10, D12, D16, D20, D24, D27, D30, D40, D45 and D60.
 - IANA timezone handling, including ambiguous and nonexistent local birth times.
 - Offline coordinate-to-IANA-timezone lookup using a pinned boundary dataset.
 - Swiss Ephemeris speed diagnostics for retrograde status and per-planet source reporting.
-- Mobile-first installable PWA with 192px, 512px, maskable and Apple touch icons.
+- Mobile-first installable PWA with a divisional-chart selector, JSON export and Android/iOS app icons.
 - No account database, saved birth profiles, payments, ads, or analytics in this starter.
 
 ## Licence
@@ -33,7 +34,7 @@ pip install -e './api[test,geo]'
 python -m unittest discover -s api/tests -v
 ```
 
-To run the optional independent D1 comparison (downloads/caches the JPL and Hipparcos reference data):
+To run the optional independent D1/varga/Dasha comparison (downloads/caches the JPL and Hipparcos reference data):
 
 ```bash
 pip install -e './api[accuracy]'
@@ -41,9 +42,9 @@ python tools/cross_validate.py
 ```
 
 ## Verification status
-GitHub Actions has installed the pinned `vedic-calc` engine and offline timezone data, generated a real sample chart with 9 planetary placements, 12 houses and 9 Mahadasha periods, passed all 16 Python tests, and validated the PWA JavaScript and configuration.
+GitHub Actions has installed the pinned `vedic-calc` engine and offline timezone data, generated a real sample chart with 9 planetary placements, 12 houses, 9 Mahadasha periods and 16 chart entries (D1 + 15 standard vargas), passed the Python test suite, and validated the PWA JavaScript and configuration.
 
-The separate JPL/Skyfield vs Swiss Ephemeris cross-check passed all 4 sample births on 2026-11-19. Maximum measured differences were 0.003434° for ayanamsa, 0.002613° for ascendant and 0.003613° across the nine planetary longitudes. This is a small D1 regression sample, not independent certification of D1 for all dates, divisional charts, dashas or astrological interpretations. See [the validation protocol and scope](docs/accuracy-validation.md) and [GitHub Actions](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions).
+The separate JPL/Skyfield vs Swiss Ephemeris cross-check passed all 4 sample births. Maximum measured D1 differences were 0.003434° for ayanamsa, 0.002613° for ascendant and 0.003613° across the nine planetary longitudes. All 15 shared vargas had zero sign-placement mismatches across 4 fixtures (600 planet/ascendant placements checked). Mahadasha lords matched, with a maximum boundary difference of 2.478 days against a documented 3-day screening limit. The JPL reference Dasha schedule is derived from that engine's D1 Moon position because its own Dasha helper uses a different ecliptic-coordinate path. These checks are a small regression sample, not a universal accuracy certification. See [the validation protocol](docs/accuracy-validation.md) and [GitHub Actions](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions).
 
 ## Deployment
 See [the closed-beta deployment guide](docs/deployment.md) for Render API and Cloudflare Pages setup. No public deployment has been performed yet.
