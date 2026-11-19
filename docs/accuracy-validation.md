@@ -48,6 +48,18 @@ The harness starts with the following maximum absolute angular differences:
 
 These are screening thresholds for gross disagreements, not an accuracy certification or astrological truth claim. If a fixture fails, investigate time conversion, ayanamsa, coordinate frame, ephemeris source and body/node conventions before changing any threshold. Do not simply widen tolerances to make CI green.
 
+## Latest measured run — 2026-11-19
+
+The GitHub Actions run [44504070247](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions/runs/44504070247) completed successfully. All four fixtures passed. The maximum observed angular differences across them were:
+
+| Compared output | Maximum observed difference | Initial limit |
+|---|---:|---:|
+| Ayanamsa | 0.003434° | 0.05° |
+| Ascendant | 0.002613° | 0.15° |
+| Nine planetary longitudes, including mean nodes | 0.003613° | 0.10° classical planets / 0.15° nodes |
+
+These values describe only the four fixtures in this repository and the exact engine versions/settings used by that run. They are not a statement of universal astronomical accuracy, nor do they validate divisional charts, dashas or interpretation outputs.
+
 ## Current scope
 
 This tool compares D1 longitudes, ascendant and ayanamsa only. It does not validate divisional charts, house lord interpretations, shadbala, yogas, doshas, panchanga transitions or dasha period start/end dates. Those need separate convention-matched fixtures before production release.
