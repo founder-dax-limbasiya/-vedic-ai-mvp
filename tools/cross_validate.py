@@ -86,6 +86,7 @@ def calculate_fixture(fixture: Fixture, verbose: bool = True) -> tuple[bool, lis
     # Lazy imports give a useful error when optional dependencies are absent.
     from jyotishganit import calculate_birth_chart
     from vedic_calc import calculate_chart
+    from vedic_calc.chart.divisional import calculate_divisional_chart
     from vedic_calc.core.constants import Ayanamsa, Planet
 
     from app.timezones import resolve_local_birth
@@ -155,6 +156,50 @@ def calculate_fixture(fixture: Fixture, verbose: bool = True) -> tuple[bool, lis
             f"ascendant mismatch {asc_diff:.6f}° > {ASCENDANT_TOLERANCE:.3f}°"
         )
 
+    # Compare every standard divisional chart exposed by both engines.
+    # These are discrete sign placements, so there is no angular tolerance:
+    # each planet and the divisional ascendant must land in the same sign.
+    divisional_results: dict[str, dict[str, int]] = {}
+    for chart_key, reference_division in sorted(reference_chart.divisional_charts.items()):
+        division = int(chart_key.lower().removeprefix("d"))
+        swiss_division = calculate_divisional_chart(swiss_chart, division)
+
+        reference_divisional_planets: dict[str, str] = {}
+        for house in reference_division.houses:
+            for occupant in house.occupants:
+                reference_divisional_planets[str(occupant.celestial_body)] = str(occupant.sign).title()
+
+        swiss_divisional_planets = {
+            planet.name.title(): sign.name.title()
+            for planet, sign in swiss_division.planets.items()
+        }
+        mismatches = 0
+        for name in (*CLASSICAL_PLANETS, *NODES):
+            reference_sign = reference_divisional_planets.get(name)
+            swiss_sign = swiss_divisional_planets.get(name)
+            if reference_sign is None or swiss_sign is None:
+                failures.append(f"{chart_key.upper()} missing divisional placement for {name}")
+                mismatches += 1
+            elif reference_sign != swiss_sign:
+                failures.append(
+                    f"{chart_key.upper()} {name} sign mismatch: "
+                    f"Skyfield={reference_sign}, Swiss={swiss_sign}"
+                )
+                mismatches += 1
+
+        reference_div_asc = str(reference_division.ascendant.sign).title()
+        swiss_div_asc = swiss_division.ascendant_sign.name.title()
+        if reference_div_asc != swiss_div_asc:
+            failures.append(
+                f"{chart_key.upper()} ascendant sign mismatch: "
+                f"Skyfield={reference_div_asc}, Swiss={swiss_div_asc}"
+            )
+            mismatches += 1
+        divisional_results[chart_key.upper()] = {
+            "mismatches": mismatches,
+            "placements_checked": len(CLASSICAL_PLANETS) + len(NODES) + 1,
+        }
+
     if verbose:
         print(f"\n[{fixture.label}] {local_naive.isoformat()} {fixture.timezone} (UTC{offset_hours:+g})")
         print(f"  UTC: {utc_birth.isoformat()}")
@@ -163,6 +208,11 @@ def calculate_fixture(fixture: Fixture, verbose: bool = True) -> tuple[bool, lis
         for name in (*CLASSICAL_PLANETS, *NODES):
             if name in diffs:
                 print(f"  {name:<8} Δ={diffs[name]:.6f}°")
+        for chart_name, stats in sorted(divisional_results.items()):
+            print(
+                f"  {chart_name:<4} {stats['placements_checked']} sign placements checked; "
+                f"{stats['mismatches']} mismatch(es)"
+            )
         print("  RESULT: " + ("FAIL" if failures else "PASS"))
         for issue in failures:
             print("    - " + issue)
