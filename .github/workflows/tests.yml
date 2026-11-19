@@ -12,3 +12,8 @@ jobs:
           python-version: '3.13'
       - run: pip install -e './api[test]'
       - run: python -m unittest discover -s api/tests -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check web/app.js && node --check web/config.js && node --check web/sw.js
+      - run: python -c "import json, pathlib, tomllib; json.loads(pathlib.Path('web/manifest.webmanifest').read_text()); tomllib.loads(pathlib.Path('api/pyproject.toml').read_text())"
