@@ -44,16 +44,21 @@ def _julian_day_utc(utc_dt: datetime) -> float:
     return swe.julday(utc.year, utc.month, utc.day, hour)
 
 
+def _enum_label(value: Any) -> str:
+    """Format enum names for display, including compound Sanskrit names."""
+    return str(value.name).replace("_", " ").title()
+
+
 def _position_payload(name: str, position: Any, retrograde: bool | None) -> dict[str, Any]:
     nak = position.nakshatra_info
     return {
         "planet": name.title(),
         "longitude": round(float(position.longitude), 6),
-        "sign": position.sign.name.title(),
+        "sign": _enum_label(position.sign),
         "degree_in_sign": round(float(position.degree_in_sign), 4),
-        "nakshatra": nak.nakshatra.name.title(),
+        "nakshatra": _enum_label(nak.nakshatra),
         "pada": int(nak.pada),
-        "nakshatra_lord": nak.lord.name.title(),
+        "nakshatra_lord": _enum_label(nak.lord),
         "retrograde": bool(position.is_retrograde if retrograde is None else retrograde),
     }
 
@@ -114,8 +119,8 @@ def generate_chart(
         houses = [
             {
                 "house": int(house.house_number),
-                "sign": house.sign.name.title(),
-                "lord": house.lord.name.title(),
+                "sign": _enum_label(house.sign),
+                "lord": _enum_label(house.lord),
             }
             for house in chart.houses
         ]
@@ -135,7 +140,7 @@ def generate_chart(
             "vara": panchanga.vara,
             "tithi_number": int(panchanga.tithi_number),
             "tithi_name": panchanga.tithi_name,
-            "nakshatra": panchanga.nakshatra.name.title(),
+            "nakshatra": _enum_label(panchanga.nakshatra),
             "yoga_number": int(panchanga.yoga_number),
             "yoga_name": panchanga.yoga_name,
             "karana_number": int(panchanga.karana_number),
@@ -162,9 +167,9 @@ def generate_chart(
             "D1": {
                 "division": 1,
                 "name": "Rasi",
-                "ascendant_sign": chart.ascendant.sign.name.title(),
+                "ascendant_sign": _enum_label(chart.ascendant.sign),
                 "planets": [
-                    {"planet": planet.name.title(), "sign": position.sign.name.title()}
+                    {"planet": planet.name.title(), "sign": _enum_label(position.sign)}
                     for planet, position in sorted(
                         chart.planets.items(), key=lambda item: item[0].value
                     )
@@ -177,9 +182,9 @@ def generate_chart(
             divisional_payload[f"D{division}"] = {
                 "division": int(varga.division),
                 "name": str(varga.name),
-                "ascendant_sign": varga.ascendant_sign.name.title(),
+                "ascendant_sign": _enum_label(varga.ascendant_sign),
                 "planets": [
-                    {"planet": planet.name.title(), "sign": sign.name.title()}
+                    {"planet": planet.name.title(), "sign": _enum_label(sign)}
                     for planet, sign in sorted(
                         varga.planets.items(), key=lambda item: item[0].value
                     )
