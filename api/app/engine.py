@@ -66,7 +66,7 @@ def generate_chart(
 ) -> dict[str, Any]:
     """Call the reused engine and add explicit ephemeris/speed diagnostics."""
     try:
-        from vedic_calc import calculate_chart, calculate_dasha
+        from vedic_calc import calculate_chart, calculate_dasha, calculate_panchanga
         from vedic_calc.chart.divisional import calculate_divisional_chart
         from vedic_calc.core.constants import Ayanamsa, Planet
     except ImportError as exc:
@@ -120,6 +120,30 @@ def generate_chart(
             for house in chart.houses
         ]
         ascendant = _position_payload("ASCENDANT", chart.ascendant, False)
+        panchanga = calculate_panchanga(
+            year=local_birth.year,
+            month=local_birth.month,
+            day=local_birth.day,
+            latitude=request.latitude,
+            longitude=request.longitude,
+            timezone_offset=timezone_offset,
+            ayanamsa=ayanamsa,
+            hour=local_birth.hour,
+            minute=local_birth.minute,
+        )
+        panchanga_payload = {
+            "vara": panchanga.vara,
+            "tithi_number": int(panchanga.tithi_number),
+            "tithi_name": panchanga.tithi_name,
+            "nakshatra": panchanga.nakshatra.name.title(),
+            "yoga_number": int(panchanga.yoga_number),
+            "yoga_name": panchanga.yoga_name,
+            "karana_number": int(panchanga.karana_number),
+            "karana_name": panchanga.karana_name,
+            "sunrise_local": panchanga.sunrise.isoformat() if panchanga.sunrise else None,
+            "sunset_local": panchanga.sunset.isoformat() if panchanga.sunset else None,
+            "calculation_time": "Exact local birth time",
+        }
         dashas = calculate_dasha(chart, levels=1)
         dasha_payload = [
             {
@@ -186,6 +210,7 @@ def generate_chart(
         "ascendant": ascendant,
         "planets": planets,
         "houses": houses,
+        "birth_panchanga": panchanga_payload,
         "vimshottari_mahadashas": dasha_payload,
         "divisional_charts": divisional_payload,
     }
