@@ -9,11 +9,32 @@ changing the comparison thresholds.
 from __future__ import annotations
 
 import argparse
-import math
+import os
 import sys
 from dataclasses import dataclass
 from datetime import date, datetime, time
 from typing import Any
+
+# The official CDS host for Skyfield's Hipparcos file was reported unavailable
+# in October 2026. Use a dated Internet Archive capture of the same CDS file
+# unless the operator explicitly supplies another verified compatible mirror.
+HIPPARCOS_ARCHIVE_URL = (
+    "https://web.archive.org/web/20250627160000if_/"
+    "https://cdsarc.cds.unistra.fr/ftp/cats/I/239/hip_main.dat"
+)
+
+
+def configure_hipparcos_source() -> str:
+    from skyfield.data import hipparcos
+
+    source = os.getenv("HIPPARCOS_CATALOG_URL", HIPPARCOS_ARCHIVE_URL).strip()
+    if not source.startswith(("https://", "http://")):
+        raise ValueError("HIPPARCOS_CATALOG_URL must be an HTTP(S) URL")
+    # jyotishganit's astronomical module imports this same module object, so
+    # changing its URL before importing jyotishganit redirects its lazy load.
+    hipparcos.URL = source
+    return source
+
 
 SIGN_INDEX = {
     "aries": 0, "taurus": 1, "gemini": 2, "cancer": 3,
@@ -62,7 +83,7 @@ def position_longitude(position: Any) -> float:
 
 
 def calculate_fixture(fixture: Fixture, verbose: bool = True) -> tuple[bool, list[str]]:
-    # Lazy imports give a useful error when the optional accuracy extra is absent.
+    # Lazy imports give a useful error when optional dependencies are absent.
     from jyotishganit import calculate_birth_chart
     from vedic_calc import calculate_chart
     from vedic_calc.core.constants import Ayanamsa, Planet
@@ -154,6 +175,8 @@ def main() -> int:
     parser.add_argument("--quiet", action="store_true", help="Print only failing fixture details.")
     args = parser.parse_args()
     try:
+        hipparcos_source = configure_hipparcos_source()
+        print(f"Hipparcos catalogue source: {hipparcos_source}")
         results = [calculate_fixture(f, verbose=not args.quiet) for f in FIXTURES]
     except ImportError as exc:
         print(
