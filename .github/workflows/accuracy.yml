@@ -1,0 +1,22 @@
+name: independent-accuracy-check
+on:
+  push:
+    paths:
+      - "tools/cross_validate.py"
+      - "api/app/engine.py"
+      - "api/pyproject.toml"
+      - "docs/accuracy-validation.md"
+      - ".github/workflows/accuracy.yml"
+  workflow_dispatch:
+jobs:
+  cross-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install optional independent reference engine
+        run: pip install -e "./api[accuracy]"
+      - name: Compare independent JPL and Swiss calculations
+        run: python tools/cross_validate.py
