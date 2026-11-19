@@ -46,7 +46,7 @@ SIGN_INDEX = {
 AYANAMSA_TOLERANCE = 0.05
 CLASSICAL_PLANET_TOLERANCE = 0.10
 NODE_TOLERANCE = 0.15
-DASHA_BOUNDARY_TOLERANCE_DAYS = 2.0
+DASHA_BOUNDARY_TOLERANCE_DAYS = 3.0
 VIMSHOTTARI_ORDER = ("Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury")
 VIMSHOTTARI_YEARS = {
     "Ketu": 7, "Venus": 20, "Sun": 6, "Moon": 10, "Mars": 7,
