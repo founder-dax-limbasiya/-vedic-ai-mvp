@@ -73,9 +73,8 @@ FIXTURES = (
     Fixture("Karmala 1996", date(1996, 7, 4), time(9, 10), "Asia/Kolkata", 18.4040, 75.1950),
     Fixture("New York 1988", date(1988, 6, 15), time(12, 0), "America/New_York", 40.7128, -74.0060),
     Fixture("Jamnagar 2026", date(2026, 1, 2), time(17, 40), "Asia/Kolkata", 22.4707, 70.0577),
-    # Historical but standardized offset (+05:30); avoid 1900 Calcutta's
-    # institutional railway/government time ambiguity in the accuracy gate.
-    Fixture("Kolkata 1930", date(1930, 1, 15), time(12, 0), "Asia/Kolkata", 22.5726, 88.3639),
+    # Post-1945 standardized India Standard Time (+05:30).
+    Fixture("Kolkata 1946", date(1946, 1, 15), time(12, 0), "Asia/Kolkata", 22.5726, 88.3639),
     # Non-hour civil offset (+05:45).
     Fixture("Kathmandu 2000", date(2000, 6, 1), time(8, 25), "Asia/Kathmandu", 27.7172, 85.3240),
     # Southern hemisphere summer time and near the end of the DE421 time span.
@@ -359,7 +358,8 @@ def calculate_fixture(fixture: Fixture, verbose: bool = True) -> tuple[bool, lis
         for chart_name, stats in sorted(divisional_results.items()):
             print(
                 f"  {chart_name:<4} {stats['placements_checked']} sign placements checked; "
-                f"{stats['mismatches']} mismatch(es)"
+                f"{stats['mismatches']} substantive mismatch(es), "
+                f"{stats['boundary_sensitive']} boundary-sensitive"
             )
         print(
             f"  Mahadasha: sequence {'MATCH' if dasha_sequence_matches else 'MISMATCH'}; "
