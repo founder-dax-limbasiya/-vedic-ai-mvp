@@ -4,7 +4,7 @@
 
 The app's production calculation adapter uses the pinned `vedic-calc` library on Swiss Ephemeris. This validation tool optionally compares it with `jyotishganit==0.1.7`, a separate MIT-licensed Python project using Skyfield and JPL DE421.
 
-The reference package is not installed in normal runtime deployments. It is isolated in the optional `accuracy` dependency group because its JPL ephemeris and Hipparcos data are downloaded on first use and add weight to installation.
+The reference package is not installed in normal runtime deployments. It is isolated in the optional `accuracy` dependency group because its JPL ephemeris and Hipparcos star-catalogue data are only needed for development validation.
 
 ## Run the check
 
@@ -15,7 +15,16 @@ pip install -e './api[accuracy]'
 python tools/cross_validate.py
 ```
 
-The first run downloads the reference engine's astronomical data files. Keep network access and disk space available.
+The first run downloads JPL DE421 and a Hipparcos catalogue file. Allow enough disk space and network access. The GitHub Actions workflow caches the downloaded files for later runs.
+
+## Hipparcos catalogue source
+
+Skyfield normally requests `hip_main.dat` from CDS/VizieR. On October 30, 2026, a Skyfield maintainer issue reported that the CDS host was unavailable. The issue author reported success using a dated Internet Archive copy of that same CDS catalogue. This harness therefore uses the archived capture from 2025-06-27 by default; set `HIPPARCOS_CATALOG_URL` to a verified compatible HTTP(S) mirror to override it.
+
+- Skyfield issue: https://github.com/skyfielders/python-skyfield/issues/1155
+- Archived catalogue capture: https://web.archive.org/web/20250627160000if_/https://cdsarc.cds.unistra.fr/ftp/cats/I/239/hip_main.dat
+
+The Hipparcos mission catalogue is a historical fixed catalogue. The archive is used to make the optional independent check repeatable while the primary CDS host is unavailable; it is not used by the production Vedic API.
 
 ## Conventions being aligned
 
