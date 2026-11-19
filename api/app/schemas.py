@@ -24,3 +24,17 @@ class ChartRequest(BaseModel):
     @classmethod
     def trim_timezone(cls, value: str) -> str:
         return value.strip()
+
+
+class DailyPanchangaRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    calendar_date: date
+    timezone: str = Field(min_length=3, max_length=64, examples=["Asia/Kolkata"])
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+
+    @field_validator("timezone")
+    @classmethod
+    def trim_timezone(cls, value: str) -> str:
+        return value.strip()
