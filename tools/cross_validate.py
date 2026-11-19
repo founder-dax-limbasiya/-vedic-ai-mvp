@@ -55,6 +55,8 @@ VIMSHOTTARI_YEARS = {
 REFERENCE_DASHA_YEAR_DAYS = 365.25  # Shared year basis to isolate D1-derived dasha math
 NAKSHATRA_SPAN = 360.0 / 27.0
 ASCENDANT_TOLERANCE = 0.15
+PANCHANGA_BOUNDARY_TOLERANCE = 0.02
+PANCHANGA_ANGLE_TOLERANCE = 0.10
 
 
 @dataclass(frozen=True)
@@ -126,7 +128,10 @@ def crossed_equal_varga_boundary(
 def calculate_fixture(fixture: Fixture, verbose: bool = True) -> tuple[bool, list[str]]:
     # Lazy imports give a useful error when optional dependencies are absent.
     from jyotishganit import calculate_birth_chart
-    from vedic_calc import calculate_chart, calculate_dasha
+    from jyotishganit.components.panchanga import create_panchanga, get_lunar_phase, lunar_longitude, solar_longitude
+    from jyotishganit.core.astronomical import get_timescale as jg_get_timescale
+    from jyotishganit.core.constants import NAKSHATRAS as JG_NAKSHATRAS, TITHI_NAMES as JG_TITHI_NAMES, YOGA_NAMES as JG_YOGA_NAMES
+    from vedic_calc import calculate_chart, calculate_dasha, calculate_panchanga
     from vedic_calc.chart.divisional import calculate_divisional_chart
     from vedic_calc.core.constants import Ayanamsa, Planet
 
@@ -158,6 +163,96 @@ def calculate_fixture(fixture: Fixture, verbose: bool = True) -> tuple[bool, lis
         timezone_offset=offset_hours,
         ayanamsa=Ayanamsa.TRUE_CHITRAPAKSHA,
     )
+
+    # Birth-time Panchanga cross-check. The second engine computes the five
+    # limbs through its separate Skyfield helper functions; the production
+    # result comes from the Swiss Ephemeris panchanga module.
+    panchanga_reference_time = jg_get_timescale().utc(
+        utc_birth.year, utc_birth.month, utc_birth.day,
+        utc_birth.hour, utc_birth.minute, utc_birth.second,
+    )
+    reference_panchanga = create_panchanga(
+        local_naive, offset_hours, float(reference_chart.ayanamsa.value)
+    )
+    reference_phase = float(get_lunar_phase(panchanga_reference_time)) % 360.0
+    reference_moon_tropical = float(lunar_longitude(panchanga_reference_time))
+    reference_sun_tropical = float(solar_longitude(panchanga_reference_time))
+    reference_moon_sidereal = (
+        reference_moon_tropical - float(reference_chart.ayanamsa.value)
+    ) % 360.0
+    reference_sun_sidereal = (
+        reference_sun_tropical - float(reference_chart.ayanamsa.value)
+    ) % 360.0
+    reference_yoga_longitude = (
+        reference_sun_sidereal + reference_moon_sidereal
+    ) % 360.0
+
+    reference_panchanga_numbers = {
+        "tithi": JG_TITHI_NAMES.index(reference_panchanga.tithi) + 1,
+        "nakshatra": JG_NAKSHATRAS.index(reference_panchanga.nakshatra) + 1,
+        "yoga": JG_YOGA_NAMES.index(reference_panchanga.yoga) + 1,
+        "karana": int(reference_phase / 6.0) + 1,
+    }
+    swiss_panchanga = calculate_panchanga(
+        year=local_birth.year,
+        month=local_birth.month,
+        day=local_birth.day,
+        latitude=fixture.latitude,
+        longitude=fixture.longitude,
+        timezone_offset=offset_hours,
+        ayanamsa=Ayanamsa.TRUE_CHITRAPAKSHA,
+        hour=local_birth.hour,
+        minute=local_birth.minute,
+    )
+    swiss_phase = (
+        float(swiss_chart.planets[Planet.MOON].longitude)
+        - float(swiss_chart.planets[Planet.SUN].longitude)
+    ) % 360.0
+    swiss_moon_sidereal = float(swiss_chart.planets[Planet.MOON].longitude)
+    swiss_yoga_longitude = (
+        float(swiss_chart.planets[Planet.SUN].longitude) + swiss_moon_sidereal
+    ) % 360.0
+
+    def distance_to_boundary(angle: float, width: float) -> float:
+        remainder = float(angle) % width
+        return min(remainder, width - remainder)
+
+    panchanga_checks = (
+        ("Tithi", reference_panchanga_numbers["tithi"], int(swiss_panchanga.tithi_number), reference_phase, swiss_phase, 12.0),
+        ("Nakshatra", reference_panchanga_numbers["nakshatra"], int(swiss_panchanga.nakshatra.value), reference_moon_sidereal, swiss_moon_sidereal, NAKSHATRA_SPAN),
+        ("Yoga", reference_panchanga_numbers["yoga"], int(swiss_panchanga.yoga_number), reference_yoga_longitude, swiss_yoga_longitude, NAKSHATRA_SPAN),
+        ("Karana", reference_panchanga_numbers["karana"], int(swiss_panchanga.karana_number), reference_phase, swiss_phase, 6.0),
+    )
+    panchanga_boundary_sensitive = 0
+    panchanga_mismatches = 0
+    panchanga_angular_differences: dict[str, float] = {}
+    for label, reference_number, swiss_number, reference_angle, swiss_angle, segment_width in panchanga_checks:
+        angular_difference = circular_difference(reference_angle, swiss_angle)
+        panchanga_angular_differences[label] = angular_difference
+        if reference_number != swiss_number:
+            near_boundary = (
+                distance_to_boundary(reference_angle, segment_width) <= PANCHANGA_BOUNDARY_TOLERANCE
+                or distance_to_boundary(swiss_angle, segment_width) <= PANCHANGA_BOUNDARY_TOLERANCE
+            )
+            if near_boundary and angular_difference <= PANCHANGA_ANGLE_TOLERANCE:
+                panchanga_boundary_sensitive += 1
+            else:
+                panchanga_mismatches += 1
+                failures.append(
+                    f"birth Panchanga {label} mismatch: "
+                    f"Skyfield={reference_number}, Swiss={swiss_number}; "
+                    f"angle Δ={angular_difference:.6f}°"
+                )
+
+    expected_vara = local_naive.strftime("%A")
+    reference_vara = str(reference_panchanga.vaara).split()[0]
+    swiss_vara = str(swiss_panchanga.vara).split()[0]
+    if reference_vara != expected_vara or swiss_vara != expected_vara:
+        panchanga_mismatches += 1
+        failures.append(
+            f"birth Panchanga Vara mismatch: date={expected_vara}, "
+            f"Skyfield={reference_panchanga.vaara}, Swiss={swiss_panchanga.vara}"
+        )
 
     failures: list[str] = []
     jg_ayanamsa = float(reference_chart.ayanamsa.value)
@@ -352,6 +447,11 @@ def calculate_fixture(fixture: Fixture, verbose: bool = True) -> tuple[bool, lis
         print(f"  UTC: {utc_birth.isoformat()}")
         print(f"  Ayanamsa: Skyfield={jg_ayanamsa:.6f}°  Swiss={se_ayanamsa:.6f}°  Δ={ayanamsa_diff:.6f}°")
         print(f"  Ascendant: Skyfield={reference_asc:.6f}°  Swiss={swiss_asc:.6f}°  Δ={asc_diff:.6f}°")
+        print(
+            f"  Birth Panchanga: {4 - panchanga_mismatches}/{4} limb indices match; "
+            f"{panchanga_boundary_sensitive} boundary-sensitive; "
+            f"max angular Δ={max(panchanga_angular_differences.values()):.6f}°"
+        )
         for name in (*CLASSICAL_PLANETS, *NODES):
             if name in diffs:
                 print(f"  {name:<8} Δ={diffs[name]:.6f}°")
