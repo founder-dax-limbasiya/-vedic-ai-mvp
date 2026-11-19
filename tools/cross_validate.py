@@ -46,6 +46,7 @@ SIGN_INDEX = {
 AYANAMSA_TOLERANCE = 0.05
 CLASSICAL_PLANET_TOLERANCE = 0.10
 NODE_TOLERANCE = 0.15
+DASHA_BOUNDARY_TOLERANCE_DAYS = 2.0
 ASCENDANT_TOLERANCE = 0.15
 
 
@@ -85,7 +86,7 @@ def position_longitude(position: Any) -> float:
 def calculate_fixture(fixture: Fixture, verbose: bool = True) -> tuple[bool, list[str]]:
     # Lazy imports give a useful error when optional dependencies are absent.
     from jyotishganit import calculate_birth_chart
-    from vedic_calc import calculate_chart
+    from vedic_calc import calculate_chart, calculate_dasha
     from vedic_calc.chart.divisional import calculate_divisional_chart
     from vedic_calc.core.constants import Ayanamsa, Planet
 
@@ -200,6 +201,48 @@ def calculate_fixture(fixture: Fixture, verbose: bool = True) -> tuple[bool, lis
             "placements_checked": len(CLASSICAL_PLANETS) + len(NODES) + 1,
         }
 
+    # Compare the nine Mahadasha lords and their start/end boundaries.
+    # The two projects use slightly different year-length constants (sidereal
+    # 365.25636 vs 365.25 days), so allow a documented 2-day screening window.
+    reference_mahadashas = reference_chart.dashas.all.get("mahadashas", {})
+    reference_dasha_lords = list(reference_mahadashas.keys())
+    swiss_mahadashas = [
+        period for period in calculate_dasha(swiss_chart, levels=1)
+        if period.level == "mahadasha"
+    ]
+    swiss_dasha_lords = [period.lord.name.title() for period in swiss_mahadashas]
+    dasha_max_boundary_difference = 0.0
+    dasha_sequence_matches = reference_dasha_lords == swiss_dasha_lords
+    if not dasha_sequence_matches:
+        failures.append(
+            f"Mahadasha lord sequence mismatch: "
+            f"Skyfield={reference_dasha_lords}, Swiss={swiss_dasha_lords}"
+        )
+    elif len(reference_dasha_lords) != 9 or len(swiss_mahadashas) != 9:
+        failures.append("Expected nine Mahadasha periods from each engine")
+    else:
+        for lord, swiss_period in zip(reference_dasha_lords, swiss_mahadashas):
+            reference_period = reference_mahadashas[lord]
+            start_delta = abs(
+                (reference_period["start"] - swiss_period.start).total_seconds()
+            ) / 86400.0
+            end_delta = abs(
+                (reference_period["end"] - swiss_period.end).total_seconds()
+            ) / 86400.0
+            dasha_max_boundary_difference = max(
+                dasha_max_boundary_difference, start_delta, end_delta
+            )
+            if start_delta > DASHA_BOUNDARY_TOLERANCE_DAYS:
+                failures.append(
+                    f"{lord} Mahadasha start differs by {start_delta:.3f} days "
+                    f"(limit {DASHA_BOUNDARY_TOLERANCE_DAYS:.1f})"
+                )
+            if end_delta > DASHA_BOUNDARY_TOLERANCE_DAYS:
+                failures.append(
+                    f"{lord} Mahadasha end differs by {end_delta:.3f} days "
+                    f"(limit {DASHA_BOUNDARY_TOLERANCE_DAYS:.1f})"
+                )
+
     if verbose:
         print(f"\n[{fixture.label}] {local_naive.isoformat()} {fixture.timezone} (UTC{offset_hours:+g})")
         print(f"  UTC: {utc_birth.isoformat()}")
@@ -213,6 +256,11 @@ def calculate_fixture(fixture: Fixture, verbose: bool = True) -> tuple[bool, lis
                 f"  {chart_name:<4} {stats['placements_checked']} sign placements checked; "
                 f"{stats['mismatches']} mismatch(es)"
             )
+        print(
+            f"  Mahadasha: sequence {'MATCH' if dasha_sequence_matches else 'MISMATCH'}; "
+            f"max boundary Δ={dasha_max_boundary_difference:.3f} days "
+            f"(limit {DASHA_BOUNDARY_TOLERANCE_DAYS:.1f} days)"
+        )
         print("  RESULT: " + ("FAIL" if failures else "PASS"))
         for issue in failures:
             print("    - " + issue)
