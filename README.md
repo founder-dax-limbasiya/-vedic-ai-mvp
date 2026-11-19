@@ -36,6 +36,9 @@ python -m unittest discover -s api/tests -v
 ## Verification status
 GitHub Actions has successfully installed the pinned `vedic-calc` engine and offline timezone data, generated a real sample chart with 9 planetary placements, 12 houses and 9 Mahadasha periods, passed all 16 Python tests, and validated the PWA JavaScript and configuration. This is an integration/smoke test, not independent astronomical or astrological accuracy certification. See [the latest workflow runs](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions).
 
+## Deployment
+See [the closed-beta deployment guide](docs/deployment.md) for Render API and Cloudflare Pages setup. No public deployment has been performed yet.
+
 ## Beta deployment only
 - Static PWA: Cloudflare Pages, output directory `web/`, no build command.
 - API: Render free service is for closed beta/testing only; free services can sleep and have ephemeral filesystems.
