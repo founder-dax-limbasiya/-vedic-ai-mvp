@@ -28,6 +28,18 @@ class ApiValidationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 422)
         self.assertEqual(response.json()["detail"]["code"], "invalid_timezone")
 
+    def test_future_birth_date_is_rejected(self):
+        response = self.client.post("/v1/chart", json={
+            "birth_date": "2999-03-15",
+            "birth_time": "10:30",
+            "timezone": "Asia/Kolkata",
+            "latitude": 19.076,
+            "longitude": 72.878,
+            "ayanamsa": "lahiri",
+        })
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["detail"]["code"], "future_birth_date")
+
     def test_place_search_is_disabled_without_identifying_user_agent(self):
         with patch.dict(os.environ, {}, clear=True):
             response = self.client.get("/v1/places?q=Jamnagar")
