@@ -2,9 +2,9 @@
 
 ## Reference engines
 
-The app's production calculation adapter uses the pinned `vedic-calc` library on Swiss Ephemeris. This validation tool optionally compares it with `jyotishganit==0.1.7`, a separate MIT-licensed Python project using Skyfield and JPL DE421.
+The production chart adapter uses the pinned `vedic-calc` library on Swiss Ephemeris. This optional validation tool compares it with `jyotishganit==0.1.7`, a separate MIT-licensed Python project using Skyfield and JPL DE421.
 
-The reference package is not installed in normal runtime deployments. It is isolated in the optional `accuracy` dependency group because its JPL ephemeris and Hipparcos star-catalogue data are only needed for development validation.
+The reference package is not installed in normal runtime deployments. It is isolated in the optional `accuracy` dependency group because its JPL ephemeris and Hipparcos catalogue data are only needed for development validation.
 
 ## Run the check
 
@@ -19,12 +19,12 @@ The first run downloads JPL DE421 and a Hipparcos catalogue file. Allow enough d
 
 ## Hipparcos catalogue source
 
-Skyfield normally requests `hip_main.dat` from CDS/VizieR. On October 30, 2026, a Skyfield maintainer issue reported that the CDS host was unavailable. The issue author reported success using a dated Internet Archive copy of that same CDS catalogue. This harness therefore uses the archived capture from 2025-06-27 by default; set `HIPPARCOS_CATALOG_URL` to a verified compatible HTTP(S) mirror to override it.
+Skyfield normally requests `hip_main.dat` from CDS/VizieR. A Skyfield maintainer issue reported that the CDS host was unavailable; the issue author reported success using a dated Internet Archive copy of that same CDS catalogue. This harness therefore uses the archived capture from 2025-06-27 by default; set `HIPPARCOS_CATALOG_URL` to a verified compatible HTTP(S) mirror to override it.
 
 - Skyfield issue: https://github.com/skyfielders/python-skyfield/issues/1155
 - Archived catalogue capture: https://web.archive.org/web/20250627160000if_/https://cdsarc.cds.unistra.fr/ftp/cats/I/239/hip_main.dat
 
-The Hipparcos mission catalogue is a historical fixed catalogue. The archive is used to make the optional independent check repeatable while the primary CDS host is unavailable; it is not used by the production Vedic API.
+The Hipparcos mission catalogue is a historical fixed catalogue. The archive is used to make the optional independent check repeatable; it is not used by the production Vedic API.
 
 ## Conventions being aligned
 
@@ -37,7 +37,7 @@ The Hipparcos mission catalogue is a historical fixed catalogue. The archive is 
 
 ## Initial engineering tolerances
 
-The harness starts with the following maximum absolute angular differences:
+The harness uses these maximum absolute angular differences as screening thresholds:
 
 | Output | Limit |
 |---|---:|
@@ -48,32 +48,51 @@ The harness starts with the following maximum absolute angular differences:
 
 These are screening thresholds for gross disagreements, not an accuracy certification or astrological truth claim. If a fixture fails, investigate time conversion, ayanamsa, coordinate frame, ephemeris source and body/node conventions before changing any threshold. Do not simply widen tolerances to make CI green.
 
-## Latest measured run — 2026-11-19
+## Divisional chart comparison
 
-The GitHub Actions run [44504070247](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions/runs/44504070247) completed successfully. All four fixtures passed. The maximum observed angular differences across them were:
+The harness compares 15 standard divisional charts (D2, D3, D4, D7, D9, D10, D12, D16, D20, D24, D27, D30, D40, D45 and D60). For each fixture, it checks the discrete sign assigned to each of the nine planets and the ascendant.
 
-| Compared output | Maximum observed difference | Initial limit |
+A small D1 longitude difference can place two engines' values on opposite sides of an equal-varga subdivision boundary. The resulting D-chart sign can therefore differ even when the underlying D1 values are close. For the equal divisions, the harness detects this exact case and reports it separately as **boundary-sensitive** rather than treating it as a substantive calculation disagreement. D30 has unequal traditional segments, so it is not included in that equal-boundary classification. All such cases remain visible in the run output; the tolerance is not widened to hide them.
+
+This check compares discrete sign placements, not every divisional longitude, bhava or school-specific varga interpretation.
+
+## Vimshottari Mahadasha comparison
+
+The independent JPL engine's built-in Vimshottari helper is **not** used as the comparison target. Code inspection shows it gets the Moon with Skyfield's default `ecliptic_latlon()`, while the JPL engine's D1 chart path uses its explicit true ecliptic/equinox-of-date frame conversion. Those are different coordinate frames; its own Dasha helper can therefore produce a different birth-nakshatra balance from its own D1 Moon placement.
+
+To avoid comparing one engine's D1 output against a different coordinate path inside that same engine, the harness derives the reference Vimshottari schedule from the JPL engine's D1 Moon position. It applies the standard 27 equal nakshatra divisions and nine-lord sequence. Both schedules use a common 365.25-day year basis to isolate the Moon-derived starting balance and lord sequence from a small difference in year-length convention.
+
+The three-day Mahadasha boundary limit is a screening threshold, not a licence to ignore larger discrepancies. The harness reports the maximum boundary difference for every fixture. This validates Mahadasha lord order and boundary timing only; it does not validate antardasha/pratyantardasha or an astrological interpretation.
+
+## Latest measured result — 2026-11-19
+
+GitHub Actions run [44538678440](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions/runs/44538678440) passed all 9 fixtures:
+
+1. Mumbai 1990
+2. Karmala 1996
+3. New York 1988
+4. Jamnagar 2026
+5. Kolkata 1946
+6. Kathmandu 2000
+7. Sydney 2050
+8. Auckland 2001 (local midnight falls on the previous UTC date)
+9. New York DST fold 2025 (second 01:30 occurrence)
+
+| Compared output | Maximum observed difference | Screening limit |
 |---|---:|---:|
-| Ayanamsa | 0.003434° | 0.05° |
-| Ascendant | 0.002613° | 0.15° |
-| Nine planetary longitudes, including mean nodes | 0.003613° | 0.10° classical planets / 0.15° nodes |
+| Ayanamsa | 0.004565° | 0.05° |
+| Ascendant | 0.077954° | 0.15° |
+| Nine planetary longitudes, including mean nodes | 0.007220° | 0.10° classical planets / 0.15° nodes |
+| Mahadasha boundary timing | 2.324 days | 3 days |
 
-These values describe only the four fixtures in this repository and the exact engine versions/settings used by that run. They are not a statement of universal astronomical accuracy, nor do they validate divisional charts, dashas or interpretation outputs.
+Across the 9 fixtures, all 15 vargas were checked for nine planets and the ascendant (1,350 discrete sign placements). There were **zero substantive mismatches** and **one boundary-sensitive D24 placement** (Auckland 2001). The nine Mahadasha lord sequences matched.
 
-## Vimshottari comparison method
+These results apply only to the listed fixtures and exact pinned engine versions/settings. They are not a universal astronomical accuracy certification and do not validate every era, latitude, time, divisional longitude or traditional rule.
 
-The independent JPL engine's built-in Vimshottari helper is **not** used as the comparison target. Code inspection shows it gets the Moon with Skyfield's default `ecliptic_latlon()`, while the JPL engine's D1 chart path uses its explicit true ecliptic/equinox-of-date frame conversion. Those are different coordinate frames, and the package's own Dasha helper can therefore produce a materially different birth-nakshatra balance from its own D1 Moon placement.
+## Not covered by this check
 
-To avoid comparing one engine's D1 output against a different coordinate path inside that same engine, the harness derives the reference Vimshottari schedule from the JPL engine's D1 Moon sign and degree. It applies the standard 27 equal nakshatra divisions, the nine-lord sequence and the reference engine's sidereal-year duration (365.25636 days). This is then compared with the pinned Swiss engine's Mahadasha periods (which uses 365.25 days).
-
-A three-day boundary tolerance is used as a screening limit to account for both the small observed inter-engine Moon-longitude difference and the small year-length difference. It is not a licence to ignore larger discrepancies. The harness still prints the maximum observed boundary difference for each fixture. This check validates the Mahadasha calculation from each engine's D1 Moon result; it does not validate antardasha/pratyantardasha or prove an astrological interpretation.
-
-## Latest result — 2026-11-19
-
-The successful GitHub Actions run [44505569050](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions/runs/44505569050) passed all four fixtures. Across the four samples, maximum D1 differences were 0.003434° for ayanamsa, 0.002613° for ascendant and 0.003613° for planetary longitudes. All 15 shared divisional charts had zero mismatches for the nine planets and ascendant in each fixture (600 discrete sign placements in total). The nine Mahadasha lords matched in order and the maximum start/end boundary difference was 2.478 days against the three-day screening tolerance.
-
-These values apply only to the four fixtures and exact pinned engine versions/settings in this run. They are not a universal astronomical accuracy certification, and they do not validate antardashas, pratyantardashas, panchanga transitions or interpretations.
-
-## Current scope
-
-This tool compares D1 longitudes, ascendant and ayanamsa only. It does not validate divisional charts, house lord interpretations, shadbala, yogas, doshas, panchanga transitions or dasha period start/end dates. Those need separate convention-matched fixtures before production release.
+- Birth-time or daily Panchanga values and transitions.
+- Antardasha, pratyantardasha and deeper Dasha boundaries.
+- Retrograde station-time edge cases.
+- Shadbala, yogas, doshas, compatibility, muhurta or interpretation text.
+- Unknown or approximate birth times.
