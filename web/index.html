@@ -3,71 +3,140 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#10151e">
-  <meta name="description" content="Create a Vedic birth chart with transparent calculation settings and privacy-first design.">
+  <meta name="theme-color" content="#f6f2ea">
+  <meta name="description" content="Explore a Vedic birth chart with clear planetary placements and transparent calculation settings.">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
-  <title>Jyoti — Vedic Astrology</title>
+  <title>Jyoti — Vedic Birth Charts</title>
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#top" aria-label="Jyoti home"><span class="brand-mark">✦</span><span>jyoti</span></a>
-    <span class="top-note">VEDIC ASTROLOGY</span>
+    <a class="brand" href="#top" aria-label="Jyoti home">
+      <span class="brand-mark" aria-hidden="true">ज</span>
+      <span class="brand-name">jyoti<small>VEDIC BIRTH CHARTS</small></span>
+    </a>
+    <span class="top-note">A STUDY OF THE SKY</span>
   </header>
 
   <main id="top" class="shell">
     <section class="hero">
-      <p class="eyebrow">A CLEARER VIEW OF YOUR BIRTH CHART</p>
-      <h1>Your sky.<br><em>Your story.</em></h1>
-      <p class="hero-copy">Explore your Vedic birth chart with transparent calculation settings and explanations rooted in traditional Jyotish.</p>
-      <div class="trust-row"><span>✧ Calculation-led</span><span>✧ Privacy-first</span><span>✧ No account required</span></div>
+      <p class="eyebrow">VEDIC ASTROLOGY · JYOTISH</p>
+      <h1>The sky at<br><em>your beginning.</em></h1>
+      <p class="hero-copy">Explore your Janma Kundali with care. Planetary positions, divisional charts and calculation settings are presented clearly, so you can see how your chart is formed.</p>
+      <div class="trust-row">
+        <span>Traditional Jyotish</span>
+        <span>Transparent calculations</span>
+        <span>No saved birth profile</span>
+      </div>
+      <span class="hero-ornament" aria-hidden="true"></span>
     </section>
 
     <section class="panel form-panel" aria-labelledby="form-heading">
       <div class="section-heading">
-        <div><p class="eyebrow">BEGIN WITH THE DETAILS</p><h2 id="form-heading">Birth information</h2></div>
-        <span class="step">01 / 01</span>
+        <div><p class="eyebrow">01 — THE FOUNDATIONS</p><h2 id="form-heading">Your birth details</h2></div>
+        <span class="step">ONE-TIME REQUEST</span>
       </div>
       <form id="chart-form">
         <div class="grid-two">
           <label>Birth date<input id="birth-date" name="birth_date" type="date" required></label>
           <label>Birth time<input id="birth-time" name="birth_time" type="time" step="60" required></label>
         </div>
-        <label class="full-label">Birthplace <span class="muted">(search once; not autocomplete)</span><div class="place-search"><input id="place-name" type="text" placeholder="e.g. Jamnagar, Gujarat, India" autocomplete="off"><button id="search-place" class="search-button" type="button">Find place</button></div><span class="hint">Place search sends this query to OpenStreetMap's public search service. Use manual coordinates if you prefer not to send the place name.</span><div id="place-results" class="place-results" hidden></div><span class="hint">Place data attribution: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>.</span></label>
+        <label class="full-label">Birthplace <span class="muted">(search or enter coordinates)</span>
+          <div class="place-search">
+            <input id="place-name" type="text" placeholder="e.g. Jamnagar, Gujarat, India" autocomplete="off">
+            <button id="search-place" class="search-button" type="button">Search</button>
+          </div>
+          <span class="hint">Place search sends the query to OpenStreetMap's public search service. You can enter coordinates manually instead.</span>
+          <div id="place-results" class="place-results" hidden></div>
+          <span class="hint">Place data attribution: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>.</span>
+        </label>
         <div class="grid-two coordinate-grid">
           <label>Latitude<input id="latitude" name="latitude" type="number" min="-90" max="90" step="any" inputmode="decimal" placeholder="22.4707" required></label>
           <label>Longitude<input id="longitude" name="longitude" type="number" min="-180" max="180" step="any" inputmode="decimal" placeholder="70.0577" required></label>
         </div>
-        <label class="full-label">Birthplace time zone <input id="timezone" name="timezone" list="timezone-list" type="text" placeholder="Asia/Kolkata" value="Asia/Kolkata" required><datalist id="timezone-list"></datalist><span class="hint" id="timezone-hint">Use the IANA time zone at the birthplace on the birth date. A suggested zone is filled after selecting a place when the optional boundary data is installed.</span></label>
-        <label class="full-label">Ayanamsa<select id="ayanamsa" name="ayanamsa"><option value="lahiri">Lahiri / Chitrapaksha</option><option value="raman">B. V. Raman</option><option value="kp">Krishnamurti Paddhati</option><option value="true_chitrapaksha">True Chitrapaksha</option></select><span class="hint">Different traditions can produce different placements. The selected setting is included in the result.</span></label>
-        <details class="advanced"><summary>Ambiguous birth time? (DST clock change)</summary><label class="full-label">Which occurrence?<select id="fold"><option value="">Not applicable / let the app decide</option><option value="0">First occurrence</option><option value="1">Second occurrence</option></select></label></details>
-        <button class="primary-button" id="submit-button" type="submit"><span>Calculate my birth chart</span><span aria-hidden="true">↗</span></button>
-        <p class="form-footnote">Birth details are sent to the calculation API for this request. This MVP does not create a saved birth profile.</p>
+        <label class="full-label">Birthplace time zone
+          <input id="timezone" name="timezone" list="timezone-list" type="text" placeholder="Asia/Kolkata" value="Asia/Kolkata" required>
+          <datalist id="timezone-list"></datalist>
+          <span class="hint" id="timezone-hint">Use the IANA time zone at the birthplace on the birth date. A suggested zone appears after selecting a place when the optional boundary data is installed.</span>
+        </label>
+        <label class="full-label">Ayanamsa
+          <select id="ayanamsa" name="ayanamsa">
+            <option value="lahiri">Lahiri / Chitrapaksha</option>
+            <option value="raman">B. V. Raman</option>
+            <option value="kp">Krishnamurti Paddhati</option>
+            <option value="true_chitrapaksha">True Chitrapaksha</option>
+          </select>
+          <span class="hint">Different Jyotish traditions can produce different placements. Your selected setting is included in the result.</span>
+        </label>
+        <details class="advanced">
+          <summary>Ambiguous birth time? (daylight-saving clock change)</summary>
+          <label class="full-label">Which occurrence?
+            <select id="fold">
+              <option value="">Not applicable / let the app decide</option>
+              <option value="0">First occurrence</option>
+              <option value="1">Second occurrence</option>
+            </select>
+          </label>
+        </details>
+        <button class="primary-button" id="submit-button" type="submit"><span>Calculate birth chart</span><span aria-hidden="true">→</span></button>
+        <p class="form-footnote">Your details are sent to the calculation service for this request. This version does not create a saved birth profile.</p>
       </form>
       <p id="form-error" class="error" role="alert" hidden></p>
     </section>
 
     <section id="results" class="results" hidden aria-live="polite">
-      <div class="results-heading"><div><p class="eyebrow">YOUR CALCULATED CHART</p><h2>Birth chart overview</h2></div><button id="new-chart" class="text-button" type="button">New chart ↺</button></div>
+      <div class="results-heading">
+        <div><p class="eyebrow">02 — YOUR CHART</p><h2>Birth chart overview</h2></div>
+        <button id="new-chart" class="text-button" type="button">Start again ↺</button>
+      </div>
       <div class="summary-card">
         <div><p class="eyebrow">ASCENDANT · LAGNA</p><h3 id="asc-sign">—</h3><p id="asc-detail" class="muted">—</p></div>
-        <div class="summary-symbol">☼</div>
+        <div class="summary-symbol" aria-hidden="true">लग्न</div>
       </div>
       <div class="meta-grid" id="meta-grid"></div>
-      <div class="result-panel"><div class="section-heading"><div><p class="eyebrow">NAVAGRAHA</p><h3>Planetary placements</h3></div></div><div class="table-wrap"><table><thead><tr><th>Planet</th><th>Sign</th><th>Position</th><th>Nakshatra</th><th>Status</th></tr></thead><tbody id="planet-rows"></tbody></table></div></div>
-      <div class="result-panel"><div class="section-heading"><div><p class="eyebrow">WHOLE SIGN HOUSES</p><h3>House lords</h3></div></div><div class="house-grid" id="house-grid"></div></div>
-      <div class="result-panel"><div class="section-heading"><div><p class="eyebrow">JANMA PANCHANGA</p><h3>Five limbs at birth</h3></div></div><div class="panchanga-grid" id="panchanga-grid"></div><p id="sunrise-sunset" class="hint"></p><p class="hint">Calculated at the exact local birth time, not at sunrise. Traditional calendar interpretations can vary by regional rules.</p></div>
-      <div class="result-panel"><div class="section-heading"><div><p class="eyebrow">DAILY PANCHANGA</p><h3>Choose a date</h3></div></div><div class="daily-controls"><label for="daily-date">Choose date<input type="date" id="daily-date"></label><button class="search-button" id="load-daily-panchanga" type="button">Load Panchanga</button></div><div class="panchanga-grid" id="daily-panchanga-grid"></div><p id="daily-sunrise-sunset" class="hint"></p><p class="hint">Daily Panchanga is calculated at local sunrise. At extreme latitudes, the engine may use a solar-noon fallback when sunrise cannot be determined.</p><p class="error" id="daily-panchanga-error" role="alert" hidden></p></div>
-      <div class="result-panel"><div class="section-heading"><div><p class="eyebrow">SHODASHA VARGA</p><h3>Divisional charts</h3></div></div><label class="full-label varga-select-label">Choose chart<select id="division-select" aria-label="Choose divisional chart"></select></label><p id="division-summary" class="hint">D1 · Rasi chart</p><div class="table-wrap"><table><thead><tr><th>Planet</th><th>Sign placement</th></tr></thead><tbody id="varga-rows"></tbody></table></div></div>
-      <div class="result-panel"><div class="section-heading"><div><p class="eyebrow">VIMSHOTTARI</p><h3>Mahadasha timeline</h3></div></div><div id="dasha-list" class="dasha-list"></div></div>
+      <div class="result-panel">
+        <div class="section-heading"><div><p class="eyebrow">01 / NAVAGRAHA</p><h3>Planetary placements</h3></div></div>
+        <div class="table-wrap"><table><thead><tr><th>Planet</th><th>Sign</th><th>Position</th><th>Nakshatra</th><th>Status</th></tr></thead><tbody id="planet-rows"></tbody></table></div>
+      </div>
+      <div class="result-panel">
+        <div class="section-heading"><div><p class="eyebrow">02 / BHAVA</p><h3>House lords</h3></div></div>
+        <div class="house-grid" id="house-grid"></div>
+      </div>
+      <div class="result-panel">
+        <div class="section-heading"><div><p class="eyebrow">03 / JANMA PANCHANGA</p><h3>Five limbs at birth</h3></div></div>
+        <div class="panchanga-grid" id="panchanga-grid"></div>
+        <p id="sunrise-sunset" class="hint"></p>
+        <p class="hint">Calculated at the exact local birth time, not at sunrise. Traditional calendar interpretations can vary by regional rules.</p>
+      </div>
+      <div class="result-panel">
+        <div class="section-heading"><div><p class="eyebrow">04 / DIN PANCHANGA</p><h3>Daily Panchanga</h3></div></div>
+        <div class="daily-controls"><label for="daily-date">Choose date<input type="date" id="daily-date"></label><button class="search-button" id="load-daily-panchanga" type="button">View date</button></div>
+        <div class="panchanga-grid" id="daily-panchanga-grid"></div>
+        <p id="daily-sunrise-sunset" class="hint"></p>
+        <p class="hint">Daily Panchanga is calculated at local sunrise. At extreme latitudes, the engine may use a solar-noon fallback when sunrise cannot be determined.</p>
+        <p class="error" id="daily-panchanga-error" role="alert" hidden></p>
+      </div>
+      <div class="result-panel">
+        <div class="section-heading"><div><p class="eyebrow">05 / SHODASHA VARGA</p><h3>Divisional charts</h3></div></div>
+        <label class="full-label varga-select-label">Choose chart<select id="division-select" aria-label="Choose divisional chart"></select></label>
+        <p id="division-summary" class="hint">D1 · Rasi chart</p>
+        <div class="table-wrap"><table><thead><tr><th>Planet</th><th>Sign placement</th></tr></thead><tbody id="varga-rows"></tbody></table></div>
+      </div>
+      <div class="result-panel">
+        <div class="section-heading"><div><p class="eyebrow">06 / VIMSHOTTARI</p><h3>Mahadasha timeline</h3></div></div>
+        <div id="dasha-list" class="dasha-list"></div>
+      </div>
       <div id="engine-note" class="engine-note"></div>
       <p class="disclaimer">Astrology is a traditional interpretive practice, not a scientifically established method for predicting events. Use this material for reflection and entertainment, not as a substitute for professional medical, legal, financial or safety advice.</p>
       <button class="secondary-button" id="download-json" type="button">Export chart data (.json)</button>
     </section>
 
-    <section class="privacy-strip"><span class="privacy-icon">◈</span><div><strong>Your birth profile is not saved.</strong><p>Birth details are sent to the calculation API for processing, but this MVP does not store them in an app database or cache API responses. Optional place search also sends the place name to OpenStreetMap.</p></div></section>
+    <section class="privacy-strip">
+      <span class="privacy-icon" aria-hidden="true">i</span>
+      <div><strong>Your birth profile is not saved.</strong><p>Birth details are sent to the calculation service for processing. This version does not store them in an app database or cache API responses. Optional place search also sends the place name to OpenStreetMap.</p></div>
+    </section>
   </main>
   <footer><span>JYOTI · VEDIC ASTROLOGY</span><span>Built for clarity, not certainty. <a id="source-link" href="#" hidden>Source code</a></span></footer>
   <script src="config.js"></script>
