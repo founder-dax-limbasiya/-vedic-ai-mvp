@@ -137,6 +137,8 @@ def calculate_fixture(fixture: Fixture, verbose: bool = True) -> tuple[bool, lis
 
     from app.timezones import resolve_local_birth
 
+    failures: list[str] = []
+
     local_birth, utc_birth, offset_hours = resolve_local_birth(
         fixture.birth_date, fixture.birth_time, fixture.timezone, fixture.fold
     )
@@ -254,7 +256,6 @@ def calculate_fixture(fixture: Fixture, verbose: bool = True) -> tuple[bool, lis
             f"Skyfield={reference_panchanga.vaara}, Swiss={swiss_panchanga.vara}"
         )
 
-    failures: list[str] = []
     jg_ayanamsa = float(reference_chart.ayanamsa.value)
     se_ayanamsa = float(swiss_chart.ayanamsa_degrees)
     ayanamsa_diff = abs(jg_ayanamsa - se_ayanamsa)
