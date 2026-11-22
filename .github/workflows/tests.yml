@@ -14,6 +14,7 @@ jobs:
         with:
           python-version: '3.13'
       - run: pip install -e './api[test,geo]'
+      - run: python scripts/sync_vercel_public.py
       - run: python -m unittest discover -s api/tests -v
       - uses: actions/setup-node@v7
         with:
