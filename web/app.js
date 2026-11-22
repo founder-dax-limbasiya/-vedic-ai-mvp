@@ -55,9 +55,52 @@ function renderVarga(chart, code) {
     <tr><td>${escapeHtml(planet.planet)}</td><td>${escapeHtml(planet.sign)}</td></tr>`).join("");
 }
 
+function renderRasiChart(chart) {
+  const signOrder = [
+    "Aries","Taurus","Gemini","Cancer","Leo","Virgo",
+    "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"
+  ];
+  const positions = [
+    [1,1],[2,1],[3,1],[4,1],[4,2],[4,3],
+    [4,4],[3,4],[2,4],[1,4],[1,3],[1,2]
+  ];
+  const shortNames = {
+    Sun:"Su",Moon:"Mo",Mars:"Ma",Mercury:"Me",Jupiter:"Ju",
+    Venus:"Ve",Saturn:"Sa",Rahu:"Ra",Ketu:"Ke"
+  };
+  const ascendantIndex = signOrder.indexOf(chart.ascendant.sign);
+  const cells = signOrder.map((sign,index) => {
+    const [column,row] = positions[index];
+    const house = ((index - ascendantIndex + 12) % 12) + 1;
+    const occupants = chart.planets.filter((planet) => planet.sign === sign);
+    const planets = occupants.map((planet) => {
+      const short = shortNames[planet.planet] || planet.planet.slice(0,2);
+      return `<span class="rasi-planet" title="${escapeHtml(planet.planet)}">${escapeHtml(short)}</span>`;
+    }).join("");
+    const ariaPlanets = occupants.map((planet) => planet.planet).join(", ");
+    return `
+      <div class="rasi-cell ${house === 1 ? "is-lagna" : ""}"
+        style="grid-column:${column};grid-row:${row}"
+        aria-label="House ${house}, ${escapeHtml(sign)}${ariaPlanets ? ": " + escapeHtml(ariaPlanets) : ""}">
+        <span class="rasi-house">${house === 1 ? "H1 · LAGNA" : `HOUSE ${house}`}</span>
+        <strong>${escapeHtml(sign)}</strong>
+        <span class="rasi-planets">${planets || '<span class="rasi-empty">—</span>'}</span>
+      </div>`;
+  }).join("");
+  const center = `
+    <div class="rasi-center" style="grid-column:2 / 4;grid-row:2 / 4">
+      <span>JANMA KUNDALI</span>
+      <strong>D1 · Rāśi</strong>
+      <p>Lagna in ${escapeHtml(chart.ascendant.sign)}</p>
+      <small>Whole-sign houses</small>
+    </div>`;
+  get("rasi-chart").innerHTML = cells + center;
+}
+
 function renderChart(chart) {
   lastChart = chart;
   get("daily-date").value = todayInTimezone(chart.birth.timezone);
+  renderRasiChart(chart);
   get("asc-sign").textContent = chart.ascendant.sign;
   get("asc-detail").textContent = `${chart.ascendant.degree_in_sign.toFixed(2)}° · ${chart.ascendant.nakshatra} · Pada ${chart.ascendant.pada}`;
   get("meta-grid").innerHTML = [
