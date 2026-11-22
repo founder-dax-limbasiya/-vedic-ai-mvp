@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from datetime import datetime, time
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
@@ -184,7 +185,8 @@ def places(q: str) -> dict[str, object]:
 # Serve the mobile-first PWA after API routes so /v1/* remains handled above.
 # Vercel promotes this StaticFiles mount to its CDN during the FastAPI build.
 PUBLIC_DIR = Path(__file__).resolve().parents[2] / "public"
-app.mount("/", StaticFiles(directory=PUBLIC_DIR, html=True), name="frontend")
+if PUBLIC_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=PUBLIC_DIR, html=True), name="frontend")
 
 
 @app.get("/v1/place-timezone")
