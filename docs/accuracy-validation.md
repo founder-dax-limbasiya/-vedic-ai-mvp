@@ -64,9 +64,9 @@ To avoid comparing one engine's D1 output against a different coordinate path in
 
 The three-day Mahadasha boundary limit is a screening threshold, not a licence to ignore larger discrepancies. The harness reports the maximum boundary difference for every fixture. This validates Mahadasha lord order and boundary timing only; it does not validate antardasha/pratyantardasha or an astrological interpretation.
 
-## Latest measured result — 2026-11-19
+## Latest measured result — 2026-11-22
 
-GitHub Actions run [44538678440](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions/runs/44538678440) passed all 9 fixtures:
+GitHub Actions run [45053023891](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions/runs/45053023891) passed all 9 fixtures:
 
 1. Mumbai 1990
 2. Karmala 1996
@@ -91,7 +91,7 @@ These results apply only to the listed fixtures and exact pinned engine versions
 
 ## Not covered by this check
 
-- Birth-time or daily Panchanga values and transitions.
+- Daily Panchanga transition timestamps (sunrise-to-next-sunrise). The birth-time Panchanga limb indices are compared in this harness, but the daily transition times are not.
 - Antardasha, pratyantardasha and deeper Dasha boundaries.
 - Retrograde station-time edge cases.
 - Shadbala, yogas, doshas, compatibility, muhurta or interpretation text.
