@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from .engine import generate_chart, generate_daily_panchanga
+from .engine import generate_chart, generate_daily_panchanga, generate_panchanga_transitions
 from .location_timezone import timezone_at
 from .place_search import PlaceSearchUnavailable, search_places
 from .schemas import ChartRequest, DailyPanchangaRequest
@@ -117,6 +117,48 @@ def daily_panchanga(payload: DailyPanchangaRequest) -> dict[str, object]:
         raise HTTPException(
             status_code=422,
             detail={"code": "panchanga_calculation_failed", "message": "The Panchanga could not be calculated for this place and date."},
+        ) from exc
+
+    return {
+        **result,
+        "timezone": payload.timezone,
+        "latitude": payload.latitude,
+        "longitude": payload.longitude,
+    }
+
+
+@app.post("/v1/panchanga/transitions")
+def daily_panchanga_transitions(payload: DailyPanchangaRequest) -> dict[str, object]:
+    """Return exact Panchanga change times from sunrise to the next sunrise."""
+    try:
+        _, _, offset_hours = resolve_local_birth(
+            payload.calendar_date, time(12, 0), payload.timezone
+        )
+    except (TimezoneInputError, NonexistentLocalTimeError, AmbiguousLocalTimeError) as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "invalid_local_date", "message": str(exc)},
+        ) from exc
+
+    try:
+        result = generate_panchanga_transitions(
+            payload.calendar_date,
+            payload.latitude,
+            payload.longitude,
+            offset_hours,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "engine_unavailable", "message": str(exc)},
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "panchanga_transitions_unavailable",
+                "message": "Transition times require sunrise and the following sunrise at this location and date.",
+            },
         ) from exc
 
     return {
