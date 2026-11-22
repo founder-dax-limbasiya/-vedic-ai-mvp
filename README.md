@@ -31,7 +31,8 @@ Serve the `web/` directory using a static host. Set the API URL in `web/config.j
 
 ### API endpoints
 - `POST /v1/chart` — birth chart, birth-time Panchanga, D1 + 15 standard vargas, Mahadasha.
-- `POST /v1/panchanga` — daily Panchanga at local sunrise for a date, timezone and coordinates.\n- `POST /v1/panchanga/transitions` — tithi, nakshatra, yoga and karana change times between sunrise and the next sunrise.
+- `POST /v1/panchanga` — daily Panchanga at local sunrise for a date, timezone and coordinates.
+- `POST /v1/panchanga/transitions` — tithi, nakshatra, yoga and karana change times between sunrise and the next sunrise.
 - `GET /v1/timezones` — IANA timezone search.
 - `GET /v1/places` — optional, one-shot birthplace search (requires an identifying Nominatim User-Agent).
 - `GET /v1/place-timezone` — offline coordinate-to-IANA-timezone lookup.
@@ -51,20 +52,19 @@ python tools/cross_validate.py
 ```
 
 ## Verification status
-The latest completed GitHub Actions run passed all **20 Python tests**, including the real-engine Jamnagar sunrise-to-sunrise Panchanga transition test, JavaScript syntax checks, and manifest/config parsing: [GitHub Actions](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions/runs/45053224077).
+The latest completed feature-code run passed all **20 Python tests**, including the real-engine Jamnagar sunrise-to-sunrise Panchanga transition test, JavaScript syntax checks, and manifest/config parsing: [GitHub Actions](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions/runs/45053224077).
 
 The separate MIT-licensed JPL/Skyfield DE421 vs Swiss Ephemeris cross-check passed all 9 sample births: Mumbai 1990, Karmala 1996, New York 1988, Jamnagar 2026, Kolkata 1946, Kathmandu 2000, Sydney 2050, Auckland 2001 and the second occurrence of a New York DST-fold time in 2025. The latest run compared birth-time Panchanga limb indices and reported 9/9 fixtures passed. Maximum measured D1 differences were 0.004565° for ayanamsa, 0.077954° for ascendant and 0.007220° across the nine planetary longitudes. All 15 vargas across 9 fixtures (1,350 discrete planet/ascendant sign checks) had zero substantive mismatches; one D24 placement was flagged as boundary-sensitive because the two close D1 inputs fell on opposite sides of a division boundary. Mahadasha lord sequences matched, with a maximum date-boundary difference of 2.324 days using a common 365.25-day year basis and a documented three-day screening limit: [independent accuracy workflow](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions/runs/45053023891).
 
-These are regression checks on a finite sample, not universal astronomical accuracy certification. Daily Panchanga transition timestamps use the pinned library's own sunrise-to-next-sunrise routine and are integration-tested, but are not yet independently cross-validated against another Panchanga reference implementation. See [the validation protocol](docs/accuracy-validation.md).
+These are regression checks on a finite sample, not universal astronomical accuracy certification. Daily Panchanga transition timestamps use the pinned library's sunrise-to-next-sunrise routine and are integration-tested, but are not yet independently cross-validated against another Panchanga reference implementation. See [the validation protocol](docs/accuracy-validation.md).
 
 ## Deployment
-See [the closed-beta deployment guide](docs/deployment.md) for Render API and Cloudflare Pages setup. No public deployment has been performed yet.
+The project is configured for a single-origin Vercel deployment: FastAPI serves the calculation API and the mobile PWA is published from Vercel's `public/` folder. See [the Vercel deployment guide](docs/vercel-deployment.md). The earlier [Render + Cloudflare Pages guide](docs/deployment.md) remains available as an alternative.
 
-## Beta deployment only
-- Static PWA: Cloudflare Pages, output directory `web/`, no build command.
-- API: Render free service is for closed beta/testing only; free services can sleep and have ephemeral filesystems.
-- Set `SOURCE_URL` in `web/config.js` to this public repository before enabling public access.
-- Configure exact `FRONTEND_ORIGINS` and a real `NOMINATIM_USER_AGENT` before enabling the optional place search.
+## Beta deployment notes
+- Vercel Hobby is suitable for a small closed beta, not an uptime promise for a paid public service.
+- `web/config.js` uses the local API only on localhost and same-origin API routes when hosted.
+- Optional Nominatim birthplace search remains disabled until a real identifying `NOMINATIM_USER_AGENT` is configured.
 - Do not enable public Nominatim search on multiple workers/replicas until its per-process in-memory rate limit/cache is replaced with a shared one.
 
 ## Reference

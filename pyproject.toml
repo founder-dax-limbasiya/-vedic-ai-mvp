@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vedic-ai-vercel"
+version = "0.1.0"
+description = "Vedic AI single-origin FastAPI and PWA deployment"
+requires-python = ">=3.12,<3.14"
+license = "AGPL-3.0-or-later"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.30,<1",
+  "pydantic>=2.8,<3",
+  "tzdata>=2025.1",
+  "vedic-calc @ git+https://github.com/atolat/vedic-calc.git@620d54560ee7e108496495eeb17054a52630a0bf",
+  "timezonefinder>=9.2,<10",
+  "timezonefinder-data==4.2026.6",
+]
+
+[tool.vercel]
+entrypoint = "api.app.main:app"
+
+[tool.vercel.scripts]
+build = "python scripts/sync_vercel_public.py"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["api*"]
+namespaces = true
