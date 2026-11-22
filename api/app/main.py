@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .engine import generate_chart, generate_daily_panchanga, generate_panchanga_transitions
 from .location_timezone import timezone_at
@@ -178,6 +179,12 @@ def places(q: str) -> dict[str, object]:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+# Serve the mobile-first PWA after API routes so /v1/* remains handled above.
+# Vercel promotes this StaticFiles mount to its CDN during the FastAPI build.
+PUBLIC_DIR = Path(__file__).resolve().parents[2] / "public"
+app.mount("/", StaticFiles(directory=PUBLIC_DIR, html=True), name="frontend")
 
 
 @app.get("/v1/place-timezone")
