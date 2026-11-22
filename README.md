@@ -6,12 +6,12 @@ A mobile-first, privacy-conscious Vedic birth-chart PWA with a Python API. “Jy
 - Vedic birth chart integration through the open-source `vedic-calc` library.
 - D1 / Rashi placements, ascendant, whole-sign houses, nakshatra/pada and Vimshottari Mahadasha.
 - Birth-time Panchanga: Vara, Tithi, Nakshatra, Yoga and Karana, plus local sunrise/sunset.
-- Daily sunrise-based Panchanga lookup by date for the same birthplace, with local sunrise/sunset.
+- Daily sunrise-based Panchanga lookup by date, plus a chronological timeline of exact tithi, nakshatra, yoga and karana changes from sunrise to next sunrise.
 - D1 plus 15 standard divisional charts: D2, D3, D4, D7, D9, D10, D12, D16, D20, D24, D27, D30, D40, D45 and D60.
 - IANA timezone handling, including ambiguous and nonexistent local birth times.
 - Offline coordinate-to-IANA-timezone lookup using a pinned boundary dataset.
 - Swiss Ephemeris speed diagnostics for retrograde status and per-planet source reporting.
-- Mobile-first installable PWA with a divisional-chart selector, daily Panchanga panel, JSON export and Android/iOS app icons.
+- Mobile-first installable PWA with a hand-crafted editorial Jyotish interface, South Indian-style D1 Rashi chart, divisional-chart selector, Panchanga transition timeline and JSON export.
 - No account database, saved birth profiles, payments, ads, analytics, or AI interpretations in this starter.
 
 ## Licence
@@ -31,7 +31,7 @@ Serve the `web/` directory using a static host. Set the API URL in `web/config.j
 
 ### API endpoints
 - `POST /v1/chart` — birth chart, birth-time Panchanga, D1 + 15 standard vargas, Mahadasha.
-- `POST /v1/panchanga` — daily Panchanga at local sunrise for a date, timezone and coordinates.
+- `POST /v1/panchanga` — daily Panchanga at local sunrise for a date, timezone and coordinates.\n- `POST /v1/panchanga/transitions` — tithi, nakshatra, yoga and karana change times between sunrise and the next sunrise.
 - `GET /v1/timezones` — IANA timezone search.
 - `GET /v1/places` — optional, one-shot birthplace search (requires an identifying Nominatim User-Agent).
 - `GET /v1/place-timezone` — offline coordinate-to-IANA-timezone lookup.
@@ -51,11 +51,11 @@ python tools/cross_validate.py
 ```
 
 ## Verification status
-GitHub Actions installed the pinned `vedic-calc` engine and offline timezone data, generated a real sample chart with 9 planetary placements, 12 houses, 9 Mahadasha periods, 16 chart entries (D1 + 15 standard vargas) and birth-time Panchanga. The daily sunrise Panchanga endpoint was tested against the real engine with Jamnagar coordinates. The latest completed run passed all 19 Python tests plus PWA JavaScript, manifest and configuration checks: [GitHub Actions](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions/runs/44539646399).
+The latest completed GitHub Actions run passed all **20 Python tests**, including the real-engine Jamnagar sunrise-to-sunrise Panchanga transition test, JavaScript syntax checks, and manifest/config parsing: [GitHub Actions](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions/runs/45053224077).
 
-The separate MIT-licensed JPL/Skyfield DE421 vs Swiss Ephemeris cross-check passed all 9 sample births: Mumbai 1990, Karmala 1996, New York 1988, Jamnagar 2026, Kolkata 1946, Kathmandu 2000, Sydney 2050, Auckland 2001 and the second occurrence of a New York DST-fold time in 2025. Maximum measured D1 differences were 0.004565° for ayanamsa, 0.077954° for ascendant and 0.007220° across the nine planetary longitudes. All 15 vargas across 9 fixtures (1,350 discrete planet/ascendant sign checks) had zero substantive mismatches; one D24 sign placement was flagged as boundary-sensitive because the two close D1 inputs fell on opposite sides of a division boundary. Mahadasha lord sequences matched, with a maximum date-boundary difference of 2.324 days using a common 365.25-day year basis and a documented three-day screening limit: [independent accuracy workflow](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions/runs/44539175732).
+The separate MIT-licensed JPL/Skyfield DE421 vs Swiss Ephemeris cross-check passed all 9 sample births: Mumbai 1990, Karmala 1996, New York 1988, Jamnagar 2026, Kolkata 1946, Kathmandu 2000, Sydney 2050, Auckland 2001 and the second occurrence of a New York DST-fold time in 2025. The latest run compared birth-time Panchanga limb indices and reported 9/9 fixtures passed. Maximum measured D1 differences were 0.004565° for ayanamsa, 0.077954° for ascendant and 0.007220° across the nine planetary longitudes. All 15 vargas across 9 fixtures (1,350 discrete planet/ascendant sign checks) had zero substantive mismatches; one D24 placement was flagged as boundary-sensitive because the two close D1 inputs fell on opposite sides of a division boundary. Mahadasha lord sequences matched, with a maximum date-boundary difference of 2.324 days using a common 365.25-day year basis and a documented three-day screening limit: [independent accuracy workflow](https://github.com/founder-dax-limbasiya/-vedic-ai-mvp/actions/runs/45053023891).
 
-These are regression checks on a finite sample, not universal astronomical accuracy certification. Daily Panchanga is integration-tested but is not yet cross-validated against independent Panchanga references. See [the validation protocol](docs/accuracy-validation.md).
+These are regression checks on a finite sample, not universal astronomical accuracy certification. Daily Panchanga transition timestamps use the pinned library's own sunrise-to-next-sunrise routine and are integration-tested, but are not yet independently cross-validated against another Panchanga reference implementation. See [the validation protocol](docs/accuracy-validation.md).
 
 ## Deployment
 See [the closed-beta deployment guide](docs/deployment.md) for Render API and Cloudflare Pages setup. No public deployment has been performed yet.
