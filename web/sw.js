@@ -1,4 +1,4 @@
-const CACHE = "jyoti-shell-v3";
+const CACHE = "jyoti-shell-v4";
 const SHELL = ["./", "./index.html", "./styles.css", "./app.js", "./config.js", "./manifest.webmanifest", "./icon.svg"];
 self.addEventListener("install", (event) => event.waitUntil(
   caches.open(CACHE)
