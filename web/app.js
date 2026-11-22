@@ -193,6 +193,63 @@ get("load-daily-panchanga").addEventListener("click", async () => {
   }
 });
 
+get("load-panchanga-transitions").addEventListener("click", async () => {
+  if (!lastChart) return;
+  const button = get("load-panchanga-transitions");
+  const panel = get("transition-panel");
+  const error = get("transition-error");
+  error.hidden = true;
+  button.disabled = true;
+  button.textContent = "Finding changes…";
+  try {
+    const response = await fetch(`${API_BASE}/v1/panchanga/transitions`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        calendar_date: get("daily-date").value,
+        timezone: lastChart.birth.timezone,
+        latitude: lastChart.birth.latitude,
+        longitude: lastChart.birth.longitude
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const detail = data.detail;
+      throw new Error(typeof detail === "string" ? detail : (detail?.message || `Request failed (${response.status})`));
+    }
+    const clock = (value) => value ? value.slice(11, 16) : "—";
+    get("transition-window").textContent = `Sunrise ${clock(data.sunrise_local)}  ·  Next sunrise ${clock(data.next_sunrise_local)}`;
+    const labels = {tithi:"Tithi",nakshatra:"Nakshatra",yoga:"Yoga",karana:"Karana"};
+    const rows = data.transitions || [];
+    get("transition-list").innerHTML = rows.length ? rows.map((item) => {
+      const label = labels[item.element] || item.element;
+      const time = item.time_local || clock(item.transition_time_local);
+      return `
+        <article class="transition-row">
+          <time datetime="${escapeHtml(item.transition_time_local || "")}">${escapeHtml(time)}</time>
+          <div class="transition-copy">
+            <strong>${escapeHtml(label)}</strong>
+            <span>${escapeHtml(item.from_name)} <b aria-hidden="true">→</b> ${escapeHtml(item.to_name)}</span>
+          </div>
+        </article>`;
+    }).join("") : '<p class="transition-empty">No Panchanga changes were found between these two sunrise times.</p>';
+    get("transition-note").textContent = data.vara_note || "Vara changes at sunrise.";
+    panel.hidden = false;
+  } catch (err) {
+    error.textContent = err.message || "Could not load the Panchanga transition times.";
+    error.hidden = false;
+    panel.hidden = true;
+  } finally {
+    button.disabled = false;
+    button.textContent = "View timings";
+  }
+});
+
+get("daily-date").addEventListener("change", () => {
+  get("transition-panel").hidden = true;
+  get("transition-error").hidden = true;
+});
+
 get("new-chart").addEventListener("click", () => {
   results.hidden = true;
   form.scrollIntoView({behavior:"smooth",block:"start"});
