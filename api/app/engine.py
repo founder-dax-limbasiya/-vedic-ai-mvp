@@ -260,3 +260,50 @@ def generate_daily_panchanga(
             "sunrise_local": panchanga.sunrise.isoformat() if panchanga.sunrise else None,
             "sunset_local": panchanga.sunset.isoformat() if panchanga.sunset else None,
         }
+
+
+def generate_panchanga_transitions(
+    calendar_date: Any,
+    latitude: float,
+    longitude: float,
+    timezone_offset: float,
+) -> dict[str, Any]:
+    """Return all Panchanga changes between local sunrise and next sunrise."""
+    try:
+        from vedic_calc.core.constants import Ayanamsa
+        from vedic_calc.panchanga.transitions import calculate_panchanga_transitions
+    except ImportError as exc:
+        raise RuntimeError("The pinned vedic-calc transition module is not installed.") from exc
+
+    with _ENGINE_LOCK:
+        result = calculate_panchanga_transitions(
+            year=calendar_date.year,
+            month=calendar_date.month,
+            day=calendar_date.day,
+            latitude=latitude,
+            longitude=longitude,
+            timezone_offset=timezone_offset,
+            ayanamsa=Ayanamsa.LAHIRI,
+        )
+
+    rows = []
+    for item in result.transitions:
+        rows.append({
+            "element": str(item.element),
+            "from_value": int(item.from_value),
+            "from_name": str(item.from_name),
+            "to_value": int(item.to_value),
+            "to_name": str(item.to_name),
+            "transition_time_local": item.transition_time.isoformat(),
+            "time_local": item.transition_time.strftime("%H:%M"),
+        })
+
+    return {
+        "date": calendar_date.isoformat(),
+        "ayanamsa": "lahiri",
+        "sunrise_local": result.sunrise.isoformat(),
+        "next_sunrise_local": result.next_sunrise.isoformat(),
+        "transitions": rows,
+        "vara_note": "Vara changes at sunrise and is not included in the transition list.",
+        "method": "Transitions are calculated from local sunrise to the next local sunrise.",
+    }
