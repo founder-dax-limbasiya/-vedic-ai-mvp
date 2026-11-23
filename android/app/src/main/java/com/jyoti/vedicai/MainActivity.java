@@ -113,6 +113,7 @@ public final class MainActivity extends Activity {
         if (lower.endsWith(".svg")) return "image/svg+xml";
         if (lower.endsWith(".png")) return "image/png";
         if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        if (lower.endsWith(".wasm")) return "application/wasm";
         if (lower.endsWith(".woff2")) return "font/woff2";
         return "application/octet-stream";
     }
