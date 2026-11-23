@@ -1,3 +1,4 @@
+# Local-first APK build: all Jyoti calculations are bundled on-device; no cloud host or API is required.
 name: Android APK
 on:
   push:
