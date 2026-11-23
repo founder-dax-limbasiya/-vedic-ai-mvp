@@ -35,6 +35,12 @@ jobs:
       - name: Build browser WebAssembly engine
         run: npm run build:client
 
+      - name: Install Chromium for the browser smoke test
+        run: npx playwright install --with-deps chromium
+
+      - name: Run real browser WebAssembly smoke test
+        run: npm run test:browser
+
       - name: Confirm generated assets
         run: |
           test -s web/engine.bundle.js
