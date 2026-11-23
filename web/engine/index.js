@@ -1,3 +1,4 @@
+import tzLookup from "@photostructure/tz-lookup";
 import {
   SwissEphemeris,
   Planet,
@@ -300,4 +301,13 @@ export async function calculatePanchangaTransitions(payload) {
 export async function isClientEngineReady() {
   const swe=await getEngine();
   return {ready:true,version:swe.version()};
+}
+
+/** Return the best-fit IANA zone for coordinates using bundled CC0 boundary data. */
+export function timezoneAt(latitude, longitude) {
+  const lat=Number(latitude), lon=Number(longitude);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)||lat < -90||lat>90||lon < -180||lon>180) {
+    throw new Error("Enter valid birthplace coordinates.");
+  }
+  return tzLookup(lat,lon);
 }
