@@ -1,0 +1,15 @@
+{
+  "name": "jyoti-client-engine",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:client": "node --test tests/client-engine.test.js",
+    "build:client": "node scripts/build_client_engine.mjs"
+  },
+  "dependencies": {
+    "@swisseph/browser": "1.4.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.27.2"
+  }
+}
