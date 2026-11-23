@@ -182,12 +182,6 @@ def places(q: str) -> dict[str, object]:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-# Serve the mobile-first PWA after API routes so /v1/* remains handled above.
-# Vercel promotes this StaticFiles mount to its CDN during the FastAPI build.
-PUBLIC_DIR = Path(__file__).resolve().parents[2] / "public"
-if PUBLIC_DIR.is_dir():
-    app.mount("/", StaticFiles(directory=PUBLIC_DIR, html=True), name="frontend")
-
 
 @app.get("/v1/place-timezone")
 def place_timezone(latitude: float, longitude: float) -> dict[str, str]:
@@ -199,3 +193,11 @@ def place_timezone(latitude: float, longitude: float) -> dict[str, str]:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+# Serve the mobile-first PWA after API routes so /v1/* remains handled above.
+# Vercel promotes this StaticFiles mount to its CDN during the FastAPI build.
+PUBLIC_DIR = Path(__file__).resolve().parents[2] / "public"
+if PUBLIC_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=PUBLIC_DIR, html=True), name="frontend")
+
