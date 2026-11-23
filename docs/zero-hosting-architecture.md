@@ -1,40 +1,67 @@
-# Jyoti: client-side calculation architecture
+# Jyoti: local-first calculation architecture
 
-## Goal
+## Decision
 
-Keep both the website/PWA and Android APK usable without a Jyoti-operated calculation API or a paid compute server. The user's browser or Android device performs chart calculations locally after the public static app assets have loaded.
+Jyoti's website and Android app share a calculation engine that runs on the user's device. Chart calculations do not call a Jyoti API or require a paid compute server.
 
-A website still needs a place to serve static files. GitHub Pages can serve the public website as a static site; this is not an API or calculation server. The APK bundles the same web assets and WebAssembly engine. Calculations do not send the birth details to a Jyoti backend.
+- Website: static files + browser WebAssembly. A static host is still needed to deliver the site.
+- Android: the same web UI, JavaScript bundle and WebAssembly binary are packaged into the APK. Calculation works locally after installation.
+- Birth data: sent to no Jyoti server for chart calculation.
+- Optional place lookup: sends only the search query to OpenStreetMap Nominatim. Users can enter coordinates manually and calculate without this request.
+- Time-zone selection: browser's IANA zone list plus a bundled coordinate boundary lookup. The coordinate lookup can be approximate near borders; verify historical local civil time for the birth date.
 
-## Shared calculation engine
+## Calculation engine
 
-- `@swisseph/browser` supplies Swiss Ephemeris calculations through WebAssembly.
-- Built-in Moshier ephemeris avoids the need to fetch ephemeris files for the baseline calculation.
-- `web/engine/vedic-core.js` contains the pure Vedic calculation rules ported from the pinned `vedic-calc` library: sign/nakshatra mapping, divisional charts, Vimshottari Mahadasha and Panchanga indices.
-- `web/engine/index.js` adapts the ephemeris to the app's current result shape and provides local time-zone conversion, sunrise/sunset estimation and transition calculations.
-- The exact same browser bundle is intended for the PWA and Android WebView APK.
+- `@swisseph/browser` runs Swiss Ephemeris through WebAssembly, using its built-in Moshier ephemeris mode.
+- `web/engine/vedic-core.js` ports the Vedic sign/nakshatra, divisional-chart, Vimshottari and Panchanga rules from the pinned `vedic-calc` version.
+- `web/engine/index.js` provides the device-local API for birth charts, daily Panchanga, sunrise-to-next-sunrise transitions and coordinate-to-time-zone lookup.
+- `scripts/build_client_engine.mjs` creates `web/engine.bundle.js` and copies `web/swisseph.wasm`.
 
-## Migration safety
+## Current verification
 
-This is a proof-of-concept branch. The current FastAPI/Python API, Render Blueprint, existing website, and APK workflow on `main` remain unchanged. Do not remove the API or switch the production UI until the local engine has passed:
-1. Browser/WebAssembly initialization tests.
-2. Golden chart parity checks against the pinned Python engine for multiple places, dates and ayanamsas.
-3. Sunrise/sunset and daily Panchanga parity checks.
-4. Transition timing checks, including day-boundary and DST cases.
-5. Android WebView testing using the packaged assets.
+The real-browser CI run at commit `f9b01d73ac5a30bb9a34caab77708bb65e687017` passed:
+- six pure calculation unit tests;
+- real Chromium WebAssembly initialization and calculation;
+- a sample chart checked against the pinned Python engine (9 planets, ascendant, 12 houses, 16 divisional charts, Mahadasha and birth Panchanga);
+- a daily Panchanga and transition comparison for one test date/location;
+- website UI flow for chart, daily Panchanga and transition rendering;
+- zero outbound browser requests during calculation.
 
-## Accuracy and limitations to verify
+The daily sunrise in the sample differed by 79 seconds from the Python reference, inside the current 180-second test tolerance. Sunrise and sunset are found through a local solar-altitude search because the browser wrapper does not expose the same `rise_trans` routine as the Python package. That approximation needs more multi-location/date verification before a production migration.
 
-The browser adapter uses the built-in Moshier ephemeris mode. The current Python deployment can use Swiss Ephemeris data files or fall back to Moshier. Results must be compared before replacing the Python backend. Sunrise/sunset is currently found by searching for the Sun's apparent-altitude crossing because the browser wrapper does not currently expose the same `rise_trans` method used by the Python engine. The calculated crossing therefore remains provisional until parity tests pass.
+The APK build workflow also completed successfully at commit `8e99cee927824da12275dada8beba0e9ef2ac637`. This proves the APK packages the local assets and compiles; it is not yet a physical-device or Android-emulator runtime test.
 
-## Hosting and connectivity
+This is still an experimental branch. The current `main` branch, Render Blueprint, Python API and server-backed production UI have not been changed. Do not remove the fallback backend or switch production until the broader parity suite and Android runtime test pass.
 
-- Website: static website hosting only; no Jyoti calculation API.
-- Android: PWA assets and WASM engine packaged inside the APK.
-- Runtime calculation: local to the user's device.
-- Internet is needed to open/download the website and receive updates. The APK can calculate offline after installation, subject to browser/WebView storage and file availability.
-- Optional place search may still call a third-party public geocoding service. Manual coordinates remain a privacy-preserving fallback.
+## Static website hosting
+
+The static website still needs a public host, but it does not need a calculation API. Recommended option: Cloudflare Pages Free, with no Pages Functions.
+
+Current Cloudflare documentation (checked 23 November 2026) lists 500 builds/month and one concurrent build on the Free plan. Pages static asset requests are free and unlimited when the request does not invoke Pages Functions. Limits and plan terms can change; this is not a lifetime guarantee.
+
+GitHub Pages is deliberately not the recommended production host for a SaaS: GitHub says Pages is not intended or allowed as free hosting for an online business or commercial SaaS.
+
+### Connect the repository in Cloudflare Pages
+
+1. In Cloudflare Dashboard, open **Workers & Pages → Create application → Pages → Connect to Git**.
+2. Authorize GitHub and select `founder-dax-limbasiya/-vedic-ai-mvp`.
+3. Set the production branch to `main` after the local-first branch has been reviewed and merged.
+4. Use these build settings:
+   - Framework preset: **None**
+   - Root directory: `/`
+   - Build command: `npm install --no-audit --no-fund && npm run build:client`
+   - Build output directory: `web`
+5. Save and deploy. Cloudflare Pages serves the generated static bundle from its `pages.dev` address. No API token needs to be pasted into source code or chat.
+
+Cloudflare Git integration can auto-deploy after each push to the selected production branch. It also supports preview deployments for branches; keep previews disabled or use them only for testing until the feature branch is ready.
+
+## Offline and privacy behaviour
+
+- After initial website load, the service worker caches the app shell, browser bundle and WASM asset. Subsequent calculations can run offline as long as the browser has retained the cache.
+- The APK bundles the same assets, so calculations do not depend on connectivity after installation.
+- Place search is an optional external lookup; manual coordinates work without it.
+- No login, cloud sync, database, payments, ads or analytics are included.
 
 ## Licensing
 
-This codebase already uses AGPL-3.0-or-later and the selected `@swisseph/browser` package is also AGPL-3.0. Preserve upstream copyright and licence notices, and include the corresponding source when distributing or offering the network-accessible website. Review Swiss Ephemeris licensing obligations before changing the project's licence or distribution model.
+The project is AGPL-3.0-or-later. The selected `@swisseph/browser` package is AGPL-3.0; `@photostructure/tz-lookup` is CC0-1.0. Preserve upstream notices and provide the corresponding source as required by AGPL when distributing the APK or offering the website over a network. Review all transitive dependency notices before public launch. This is an engineering summary, not legal advice.
