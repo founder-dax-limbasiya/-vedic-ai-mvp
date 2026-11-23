@@ -8,6 +8,7 @@ on:
       - "tests/client-engine.test.js"
       - "package.json"
       - "scripts/build_client_engine.mjs"
+      - "scripts/test_client_browser.mjs"
       - ".github/workflows/client-engine-check.yml"
   workflow_dispatch:
 
