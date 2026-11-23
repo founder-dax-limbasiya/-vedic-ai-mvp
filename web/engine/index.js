@@ -146,7 +146,7 @@ function solarEventsForLocalDate(swe,date,timeZone,latitude,longitude) {
 }
 async function createEngine() {
   const swe=new SwissEphemeris();
-  await swe.init(new URL("../swisseph.wasm",import.meta.url).href);
+  await swe.init(new URL("./swisseph.wasm",import.meta.url).href);
   return swe;
 }
 async function getEngine() {
@@ -165,7 +165,7 @@ function astronomyFor(swe,epochMs,latitude,longitude,ayanamsa) {
   }
   positions.Ketu=positionPayload("Ketu",wrap360(positions.Rahu.longitude+180),true);
   const houses=swe.calculateHouses(jd,latitude,longitude,HouseSystem.WholeSign);
-  const ascendant=positionPayload("ASCENDANT",wrap360(houses.ascendant-ayanamsaDegrees),false);
+  const ascendant=positionPayload("Ascendant",wrap360(houses.ascendant-ayanamsaDegrees),false);
   const houseRows=Array.from({length:12},(_,i)=>{
     const signIndex=(Math.floor(ascendant.longitude/30)+i)%12;
     return {house:i+1,sign:SIGNS[signIndex],lord:SIGN_LORDS[signIndex]};
@@ -183,6 +183,7 @@ function panchangaFor(swe,epochMs,latitude,longitude,timeZone,ayanamsa) {
   const sun=read(jd,Planet.Sun).longitude;
   const moon=read(jd,Planet.Moon).longitude;
   return {
+    date:day,
     ...panchangaFromLongitudes(sun,moon,day),
     sunrise_local:events.sunriseMs===null?null:isoLocal(events.sunriseMs,timeZone),
     sunset_local:events.sunsetMs===null?null:isoLocal(events.sunsetMs,timeZone),
@@ -209,7 +210,6 @@ export async function calculateBirthChart(payload) {
   if(birthDate>todayLocal) throw new Error("Birth date cannot be in the future.");
   const astro=astronomyFor(swe,birth.epochMs,location.latitude,location.longitude,mode);
   const sunriseEvents=solarEventsForLocalDate(swe,birthDate,timeZone,location.latitude,location.longitude);
-  const panchanga=panchangaFor(swe,birth.epochMs,location.latitude,location.longitude,timeZone,mode);
   const birthPanchanga=astro.read(astro.jd,Planet.Sun);
   const birthMoon=astro.read(astro.jd,Planet.Moon);
   const birthPanchangaValues=panchangaFromLongitudes(birthPanchanga.longitude,birthMoon.longitude,birthDate);
