@@ -1,0 +1,52 @@
+name: Client-side engine checks
+
+on:
+  push:
+    branches: [client-side-engine-poc]
+    paths:
+      - "web/engine/**"
+      - "tests/client-engine.test.js"
+      - "package.json"
+      - "scripts/build_client_engine.mjs"
+      - ".github/workflows/client-engine-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install open-source dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run pure calculation tests
+        run: npm run test:client
+
+      - name: Build browser WebAssembly engine
+        run: npm run build:client
+
+      - name: Confirm generated assets
+        run: |
+          test -s web/engine.bundle.js
+          test -s web/swisseph.wasm
+          ls -lh web/engine.bundle.js web/swisseph.wasm
+
+      - name: Upload client engine build
+        uses: actions/upload-artifact@v4
+        with:
+          name: jyoti-client-engine-poc
+          path: |
+            web/engine.bundle.js
+            web/swisseph.wasm
+          retention-days: 14
