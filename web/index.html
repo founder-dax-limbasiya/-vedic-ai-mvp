@@ -59,7 +59,7 @@
         <label class="full-label">Birthplace time zone
           <input id="timezone" name="timezone" list="timezone-list" type="text" placeholder="Asia/Kolkata" value="Asia/Kolkata" required>
           <datalist id="timezone-list"></datalist>
-          <span class="hint" id="timezone-hint">Use the IANA time zone at the birthplace on the birth date. A suggested zone appears after selecting a place when the optional boundary data is installed.</span>
+          <span class="hint" id="timezone-hint">Use the IANA time zone that applied at the birthplace on the birth date. The suggested zone from coordinates is approximate near time-zone borders; verify historical local time.</span>
         </label>
         <label class="full-label">Ayanamsa
           <select id="ayanamsa" name="ayanamsa">
@@ -81,7 +81,7 @@
           </label>
         </details>
         <button class="primary-button" id="submit-button" type="submit"><span>Calculate birth chart</span><span aria-hidden="true">→</span></button>
-        <p class="form-footnote">Your details are sent to the calculation service for this request. This version does not create a saved birth profile.</p>
+        <p class="form-footnote">Your chart is calculated on this device. Jyoti does not upload or save your birth details.</p>
       </form>
       <p id="form-error" class="error" role="alert" hidden></p>
     </section>
@@ -151,11 +151,11 @@
 
     <section class="privacy-strip">
       <span class="privacy-icon" aria-hidden="true">i</span>
-      <div><strong>Your birth profile is not saved.</strong><p>Birth details are sent to the calculation service for processing. This version does not store them in an app database or cache API responses. Optional place search also sends the place name to OpenStreetMap.</p></div>
+      <div><strong>Your birth profile is not saved.</strong><p>Your birth details stay on this device and are not sent to a Jyoti server. Optional place search sends only your search query to OpenStreetMap. The app does not save a birth profile.</p></div>
     </section>
   </main>
   <footer><span>JYOTI · VEDIC ASTROLOGY</span><span>Built for clarity, not certainty. <a id="source-link" href="#" hidden>Source code</a></span></footer>
   <script src="config.js"></script>
-  <script src="app.js" defer></script>
+  <script type="module" src="app-local.js"></script>
 </body>
 </html>
