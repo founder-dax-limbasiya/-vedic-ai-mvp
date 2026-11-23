@@ -26,4 +26,6 @@ jobs:
       - run: npm run build:client
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+      - run: python scripts/sync_android_assets.py
+      - run: test -s android/app/src/main/assets/www/engine.bundle.js && test -s android/app/src/main/assets/www/swisseph.wasm && test -s android/app/src/main/assets/www/app-local.js
       - run: python -c "import json, pathlib, tomllib; json.loads(pathlib.Path('web/manifest.webmanifest').read_text()); tomllib.loads(pathlib.Path('api/pyproject.toml').read_text())"
