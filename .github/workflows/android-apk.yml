@@ -38,7 +38,18 @@ jobs:
         with:
           gradle-version: "8.10.2"
 
-      - name: Bundle PWA assets
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install browser calculation dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build local WebAssembly calculation engine
+        run: npm run build:client
+
+      - name: Bundle local-first PWA assets
         run: python scripts/sync_android_assets.py
 
       - name: Build installable debug APK
