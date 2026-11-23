@@ -43,6 +43,9 @@ def main() -> None:
     transitions = generate_panchanga_transitions(
         panchanga_date, 22.4707, 70.0577, panchanga_offset
     )
+    ui_transitions = generate_panchanga_transitions(
+        panchanga_date, 19.0760, 72.8777, panchanga_offset
+    )
 
     destination = ROOT / "tests" / "python_reference.json"
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -51,6 +54,7 @@ def main() -> None:
             "chart": chart,
             "daily_panchanga": daily,
             "transitions": transitions,
+            "ui_transitions": ui_transitions,
         }, indent=2, default=str),
         encoding="utf-8",
     )
