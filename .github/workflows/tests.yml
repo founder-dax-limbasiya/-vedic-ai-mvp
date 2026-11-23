@@ -20,4 +20,9 @@ jobs:
         with:
           node-version: '22'
       - run: node --check web/app.js && node --check web/config.js && node --check web/sw.js
+      - run: npm install --no-audit --no-fund
+      - run: npm run test:client
+      - run: npm run build:client
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
       - run: python -c "import json, pathlib, tomllib; json.loads(pathlib.Path('web/manifest.webmanifest').read_text()); tomllib.loads(pathlib.Path('api/pyproject.toml').read_text())"
