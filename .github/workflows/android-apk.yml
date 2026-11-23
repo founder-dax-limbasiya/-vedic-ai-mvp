@@ -1,11 +1,14 @@
 name: Android APK
 on:
   push:
-    branches: [main]
+    branches: [main, client-side-engine-poc]
     paths:
       - "android/**"
       - "web/**"
       - "scripts/sync_android_assets.py"
+      - "scripts/build_client_engine.mjs"
+      - "package.json"
+      - "package-lock.json"
       - ".github/workflows/android-apk.yml"
   workflow_dispatch:
 
