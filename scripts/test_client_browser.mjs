@@ -46,6 +46,8 @@ try{
   const result=await page.evaluate(async()=>{
     const engine=await import("./engine.bundle.js");
     const ready=await engine.isClientEngineReady();
+    const jamnagarTimezone=engine.timezoneAt(22.4707,70.0577);
+    const mumbaiTimezone=engine.timezoneAt(19.0760,72.8777);
     const chart=await engine.calculateBirthChart({
       birth_date:"1990-03-15",
       birth_time:"10:30",
@@ -70,6 +72,8 @@ try{
     });
     return {
       ready,
+      jamnagarTimezone,
+      mumbaiTimezone,
       birth:chart.birth,
       ayanamsa:chart.ayanamsa_degrees,
       ascendant:chart.ascendant,
@@ -148,6 +152,8 @@ try{
     assertNearTime(actual.transition_time_local,expected.transition_time_local,`Transition ${i} time`,180);
   }
   assert.equal(result.ready.ready,true);
+  assert.equal(result.jamnagarTimezone,"Asia/Kolkata");
+  assert.equal(result.mumbaiTimezone,"Asia/Kolkata");
   assert.ok(result.ready.version);
   assert.equal(result.birth.utc_datetime,"1990-03-15T05:00:00+00:00");
   assert.ok(result.ayanamsa>20 && result.ayanamsa<30);
@@ -166,6 +172,7 @@ try{
   assert.deepEqual(externalRequests,[]);
   console.log(JSON.stringify({
     wasm:result.ready,
+    coordinate_timezones:{jamnagar:result.jamnagarTimezone,mumbai:result.mumbaiTimezone},
     ayanamsa:result.ayanamsa,
     ascendant:result.ascendant,
     planets:result.planets.map(p=>({planet:p.planet,sign:p.sign,longitude:p.longitude})),
