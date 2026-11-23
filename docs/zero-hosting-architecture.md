@@ -19,15 +19,16 @@ Jyoti's website and Android app share a calculation engine that runs on the user
 
 ## Current verification
 
-The real-browser CI run at commit `f9b01d73ac5a30bb9a34caab77708bb65e687017` passed:
+The real-browser CI run at commit `40f715337fb95e6037c53e8361d7accf64c5bf7f` passed:
 - six pure calculation unit tests;
 - real Chromium WebAssembly initialization and calculation;
 - a sample chart checked against the pinned Python engine (9 planets, ascendant, 12 houses, 16 divisional charts, Mahadasha and birth Panchanga);
+- all nine Mahadasha lord, start-date, end-date and duration values against the Python reference;
 - a daily Panchanga and transition comparison for one test date/location;
 - website UI flow for chart, daily Panchanga and transition rendering;
 - zero outbound browser requests during calculation.
 
-The daily sunrise in the sample differed by 79 seconds from the Python reference, inside the current 180-second test tolerance. Sunrise and sunset are found through a local solar-altitude search because the browser wrapper does not expose the same `rise_trans` routine as the Python package. That approximation needs more multi-location/date verification before a production migration.
+The daily sunrise in the sample differed by 79 seconds from the Python reference, inside the current 180-second test tolerance. Sunrise and sunset are found through a local solar-altitude search because the browser wrapper does not expose the same `rise_trans` routine as the Python package. That approximation needs more multi-location/date verification before a production migration. The current sample is one chart birth and one daily Panchanga date across Jamnagar/Mumbai, so it is a useful regression gate, not a complete accuracy certification.
 
 The APK build workflow also completed successfully at commit `8e99cee927824da12275dada8beba0e9ef2ac637`. This proves the APK packages the local assets and compiles; it is not yet a physical-device or Android-emulator runtime test.
 
