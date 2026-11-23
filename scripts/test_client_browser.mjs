@@ -170,6 +170,32 @@ try{
   assert.ok(Array.isArray(result.transitions.transitions));
   assert.ok(result.planets.every(p=>p.longitude>=0 && p.longitude<360));
   assert.deepEqual(externalRequests,[]);
+  const uiPage=await browser.newPage();
+  const uiOutbound=[];
+  uiPage.on("request",request=>{
+    if(!request.url().startsWith(origin)) uiOutbound.push(request.url());
+  });
+  await uiPage.goto(`${origin}/index.html`,{waitUntil:"load"});
+  await uiPage.fill("#birth-date","1990-03-15");
+  await uiPage.fill("#birth-time","10:30");
+  await uiPage.fill("#latitude","19.0760");
+  await uiPage.fill("#longitude","72.8777");
+  await uiPage.fill("#timezone","Asia/Kolkata");
+  await uiPage.click("#submit-button");
+  await uiPage.locator("#results:not([hidden])").waitFor({timeout:30000});
+  assert.equal(await uiPage.locator("#planet-rows tr").count(),9);
+  assert.equal(await uiPage.locator("#division-select option").count(),16);
+  assert.equal(await uiPage.locator("#asc-sign").textContent(),"Taurus");
+  await uiPage.fill("#daily-date","2026-03-08");
+  await uiPage.click("#load-daily-panchanga");
+  await uiPage.locator("#daily-panchanga-grid .panchanga-item").nth(4).waitFor();
+  assert.equal(await uiPage.locator("#daily-panchanga-grid .panchanga-item").count(),5);
+  await uiPage.click("#load-panchanga-transitions");
+  await uiPage.locator("#transition-panel:not([hidden])").waitFor({timeout:30000});
+  assert.equal(await uiPage.locator("#transition-list .transition-row").count(),pythonTransitions.length);
+  assert.deepEqual(uiOutbound,[],"the local-first website UI must not call an API or external service for calculations");
+  await uiPage.close();
+
   console.log(JSON.stringify({
     wasm:result.ready,
     coordinate_timezones:{jamnagar:result.jamnagarTimezone,mumbai:result.mumbaiTimezone},
@@ -181,6 +207,8 @@ try{
     transition_count:result.transitions.transitions.length,
     outbound_requests:externalRequests.length,
     parity:"passed against pinned Python engine",
+    website_ui:"birth chart + daily Panchanga + transitions passed",
+    website_outbound_requests:0,
     python_ayanamsa:pythonChart.ayanamsa_degrees,
     client_ayanamsa:result.ayanamsa,
     python_daily_sunrise:pythonDaily.sunrise_local,
