@@ -8,7 +8,8 @@
     "test:browser": "node scripts/test_client_browser.mjs"
   },
   "dependencies": {
-    "@swisseph/browser": "1.4.0"
+    "@swisseph/browser": "1.4.0",
+    "@photostructure/tz-lookup": "11.8.0"
   },
   "devDependencies": {
     "esbuild": "0.27.2",
