@@ -17,6 +17,11 @@ const mime={
 const server=createServer(async(req,res)=>{
   try{
     const url=new URL(req.url,"http://127.0.0.1");
+    if(url.pathname==="/engine-smoke.html"){
+      res.writeHead(200,{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store"});
+      res.end("<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'></head><body>Jyoti engine smoke test</body></html>");
+      return;
+    }
     const pathname=decodeURIComponent(url.pathname==="/"?"/index.html":url.pathname);
     const file=resolve(root,`.${pathname}`);
     if(file!==root && !file.startsWith(root+sep)){res.writeHead(403).end();return;}
@@ -37,7 +42,7 @@ try{
   page.on("request",request=>{
     if(!request.url().startsWith(origin)) externalRequests.push(request.url());
   });
-  await page.goto(origin,{waitUntil:"domcontentloaded"});
+  await page.goto(`${origin}/engine-smoke.html`,{waitUntil:"domcontentloaded"});
   const result=await page.evaluate(async()=>{
     const engine=await import("./engine.bundle.js");
     const ready=await engine.isClientEngineReady();
