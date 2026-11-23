@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Copy the canonical mobile PWA assets from web/ to Vercel's public/ folder."""
+"""Copy the canonical mobile PWA assets from web/ to the FastAPI public/ folder."""
 from __future__ import annotations
 
 import shutil

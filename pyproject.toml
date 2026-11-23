@@ -3,7 +3,7 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "vedic-ai-vercel"
+name = "vedic-ai"
 version = "0.1.0"
 description = "Vedic AI single-origin FastAPI and PWA deployment"
 requires-python = ">=3.12,<3.14"
@@ -17,12 +17,6 @@ dependencies = [
   "timezonefinder>=9.2,<10",
   "timezonefinder-data==4.2026.6",
 ]
-
-[tool.vercel]
-entrypoint = "api.app.main:app"
-
-[tool.vercel.scripts]
-build = "python scripts/sync_vercel_public.py"
 
 [tool.setuptools.packages.find]
 where = ["."]

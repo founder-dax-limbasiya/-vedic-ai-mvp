@@ -59,11 +59,11 @@ The separate MIT-licensed JPL/Skyfield DE421 vs Swiss Ephemeris cross-check pass
 These are regression checks on a finite sample, not universal astronomical accuracy certification. Daily Panchanga transition timestamps use the pinned library's sunrise-to-next-sunrise routine and are integration-tested, but are not yet independently cross-validated against another Panchanga reference implementation. See [the validation protocol](docs/accuracy-validation.md).
 
 ## Deployment
-The project is configured for a single-origin Vercel deployment: FastAPI serves the calculation API and the mobile PWA is published from Vercel's `public/` folder. See [the Vercel deployment guide](docs/vercel-deployment.md). The earlier [Render + Cloudflare Pages guide](docs/deployment.md) remains available as an alternative.
+The app is designed as a single-origin Render web service: FastAPI serves both the calculation API and the mobile PWA. The repository includes `render.yaml` for a one-click Blueprint setup. See [the deployment guide](docs/deployment.md).
 
 ## Beta deployment notes
-- Vercel Hobby is suitable for a small closed beta, not an uptime promise for a paid public service.
-- `web/config.js` uses the local API only on localhost and same-origin API routes when hosted.
+- Render's free web service sleeps after 15 minutes without traffic and may take about a minute to wake; this is suitable for testing, not an always-on production promise.
+- Hosted browser requests use same-origin API routes. The Android APK calls the same Render API over the internet.
 - Optional Nominatim birthplace search remains disabled until a real identifying `NOMINATIM_USER_AGENT` is configured.
 - Do not enable public Nominatim search on multiple workers/replicas until its per-process in-memory rate limit/cache is replaced with a shared one.
 

@@ -11,7 +11,7 @@ SOURCE = ROOT / "web"
 DESTINATION = ROOT / "android" / "app" / "src" / "main" / "assets" / "www"
 API_BASE = os.environ.get(
     "VEDIC_API_BASE",
-    "https://vedic-ai-sable.vercel.app",
+    "https://jyoti-vedic-ai-api.onrender.com",
 ).rstrip("/")
 SOURCE_URL = "https://github.com/founder-dax-limbasiya/-vedic-ai-mvp"
 ASSETS = (

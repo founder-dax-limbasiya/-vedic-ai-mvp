@@ -196,7 +196,7 @@ def place_timezone(latitude: float, longitude: float) -> dict[str, str]:
 
 
 # Serve the mobile-first PWA after API routes so /v1/* remains handled above.
-# Vercel promotes this StaticFiles mount to its CDN during the FastAPI build.
+# The deployment build copies the canonical PWA assets into public/.
 PUBLIC_DIR = Path(__file__).resolve().parents[2] / "public"
 if PUBLIC_DIR.is_dir():
     app.mount("/", StaticFiles(directory=PUBLIC_DIR, html=True), name="frontend")
