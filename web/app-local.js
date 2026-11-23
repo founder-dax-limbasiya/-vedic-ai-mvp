@@ -1,4 +1,9 @@
-const API_BASE = (window.VEDIC_CONFIG?.API_BASE || "").replace(/\/$/, "");
+import {
+  calculateBirthChart,
+  calculateDailyPanchanga,
+  calculatePanchangaTransitions,
+  timezoneAt
+} from "./engine.bundle.js";
 const form = document.getElementById("chart-form");
 const submitButton = document.getElementById("submit-button");
 const errorBox = document.getElementById("form-error");
@@ -10,13 +15,42 @@ const localNow = new Date();
 const dateToday = `${localNow.getFullYear()}-${String(localNow.getMonth()+1).padStart(2,"0")}-${String(localNow.getDate()).padStart(2,"0")}`;
 get("birth-date").max = dateToday;
 
-async function loadTimezones() {
+function loadTimezones() {
   try {
-    const response = await fetch(`${API_BASE}/v1/timezones?q=`);
-    if (!response.ok) return;
-    const data = await response.json();
-    get("timezone-list").innerHTML = data.timezones.map((zone) => `<option value="${escapeHtml(zone)}"></option>`).join("");
-  } catch (_) { /* Manual IANA timezone entry remains available. */ }
+    const zones = typeof Intl.supportedValuesOf === "function"
+      ? Intl.supportedValuesOf("timeZone")
+      : ["Asia/Kolkata","Asia/Dubai","Asia/Singapore","Asia/Tokyo","Europe/London","Europe/Paris","America/New_York","America/Los_Angeles","Australia/Sydney"];
+    const unique = ["UTC", ...zones.filter((zone) => zone !== "UTC")];
+    get("timezone-list").innerHTML = unique.map((zone) => `<option value="${escapeHtml(zone)}"></option>`).join("");
+  } catch (_) { /* The user can still enter an IANA timezone manually. */ }
+}
+
+const placeSearchCache = new Map();
+let lastPlaceSearchAt = 0;
+async function searchPlaces(query) {
+  const key = query.trim().toLocaleLowerCase();
+  if (!key) throw new Error("Enter a town, city or address to search.");
+  if (placeSearchCache.has(key)) return placeSearchCache.get(key);
+
+  // Nominatim's public service asks applications to stay at or below one request per second.
+  const waitMs = Math.max(0, 1100 - (Date.now() - lastPlaceSearchAt));
+  if (waitMs) await new Promise((resolve) => setTimeout(resolve, waitMs));
+  lastPlaceSearchAt = Date.now();
+
+  const url = new URL("https://nominatim.openstreetmap.org/search");
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("limit", "5");
+  url.searchParams.set("q", query.trim());
+  const response = await fetch(url.toString(), {headers: {Accept:"application/json"}});
+  if (!response.ok) throw new Error("OpenStreetMap place search is temporarily unavailable.");
+  const raw = await response.json();
+  const places = raw.map((item) => ({
+    label:item.display_name,
+    latitude:Number(item.lat),
+    longitude:Number(item.lon)
+  })).filter((item) => Number.isFinite(item.latitude) && Number.isFinite(item.longitude));
+  placeSearchCache.set(key, places);
+  return places;
 }
 
 function escapeHtml(value) {
@@ -170,14 +204,7 @@ form.addEventListener("submit", async (event) => {
     ...(foldValue === "" ? {} : {fold:Number(foldValue)})
   };
   try {
-    const response = await fetch(`${API_BASE}/v1/chart`, {
-      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const detail = data.detail;
-      throw new Error(typeof detail === "string" ? detail : (detail?.message || `Request failed (${response.status})`));
-    }
+    const data = await calculateBirthChart(payload);
     renderChart(data);
   } catch (error) {
     showError(error.message || "Could not calculate the chart. Check your connection and inputs.");
@@ -200,21 +227,13 @@ get("load-daily-panchanga").addEventListener("click", async () => {
   button.disabled = true;
   button.textContent = "Loading…";
   try {
-    const response = await fetch(`${API_BASE}/v1/panchanga`, {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({
-        calendar_date: get("daily-date").value,
-        timezone: lastChart.birth.timezone,
-        latitude: lastChart.birth.latitude,
-        longitude: lastChart.birth.longitude
-      })
+    const data = await calculateDailyPanchanga({
+      calendar_date: get("daily-date").value,
+      timezone: lastChart.birth.timezone,
+      latitude: lastChart.birth.latitude,
+      longitude: lastChart.birth.longitude,
+      ayanamsa: lastChart.settings.ayanamsa
     });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const detail = data.detail;
-      throw new Error(typeof detail === "string" ? detail : (detail?.message || `Request failed (${response.status})`));
-    }
     const items = [
       ["Vara", data.vara],
       ["Tithi", data.tithi_name],
@@ -245,21 +264,13 @@ get("load-panchanga-transitions").addEventListener("click", async () => {
   button.disabled = true;
   button.textContent = "Finding changes…";
   try {
-    const response = await fetch(`${API_BASE}/v1/panchanga/transitions`, {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({
-        calendar_date: get("daily-date").value,
-        timezone: lastChart.birth.timezone,
-        latitude: lastChart.birth.latitude,
-        longitude: lastChart.birth.longitude
-      })
+    const data = await calculatePanchangaTransitions({
+      calendar_date: get("daily-date").value,
+      timezone: lastChart.birth.timezone,
+      latitude: lastChart.birth.latitude,
+      longitude: lastChart.birth.longitude,
+      ayanamsa: lastChart.settings.ayanamsa
     });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const detail = data.detail;
-      throw new Error(typeof detail === "string" ? detail : (detail?.message || `Request failed (${response.status})`));
-    }
     const clock = (value) => value ? value.slice(11, 16) : "—";
     get("transition-window").textContent = `Sunrise ${clock(data.sunrise_local)}  ·  Next sunrise ${clock(data.next_sunrise_local)}`;
     const labels = {tithi:"Tithi",nakshatra:"Nakshatra",yoga:"Yoga",karana:"Karana"};
@@ -317,24 +328,19 @@ get("search-place").addEventListener("click", async () => {
   container.textContent = "Searching…";
   button.disabled = true;
   try {
-    const response = await fetch(`${API_BASE}/v1/places?q=${encodeURIComponent(query)}`);
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Place search is unavailable.");
-    if (!data.places?.length) throw new Error("No matching places found. Try a nearby city or enter coordinates manually.");
-    container.innerHTML = data.places.map((place, index) => `<button type="button" class="place-option" data-index="${index}">${escapeHtml(place.label)}</button>`).join("");
-    container.querySelectorAll("button").forEach((option) => option.addEventListener("click", async () => {
-      const place = data.places[Number(option.dataset.index)];
+    const places = await searchPlaces(query);
+    if (!places.length) throw new Error("No matching places found. Try a nearby city or enter coordinates manually.");
+    container.innerHTML = places.map((place, index) => `<button type="button" class="place-option" data-index="${index}">${escapeHtml(place.label)}</button>`).join("");
+    container.querySelectorAll("button").forEach((option) => option.addEventListener("click", () => {
+      const place = places[Number(option.dataset.index)];
       get("latitude").value = place.latitude;
       get("longitude").value = place.longitude;
       get("place-name").value = place.label;
       container.hidden = true;
-      get("timezone-hint").textContent = "Getting the time zone from the selected coordinates…";
       try {
-        const zoneResponse = await fetch(`${API_BASE}/v1/place-timezone?latitude=${place.latitude}&longitude=${place.longitude}`);
-        const zoneData = await zoneResponse.json().catch(() => ({}));
-        if (!zoneResponse.ok) throw new Error(zoneData.detail || "Automatic time-zone lookup unavailable.");
-        get("timezone").value = zoneData.timezone;
-        get("timezone-hint").textContent = `Suggested: ${zoneData.timezone}. Check that it matches the local civil time at the birthplace and birth date.`;
+        const timezone = timezoneAt(place.latitude, place.longitude);
+        get("timezone").value = timezone;
+        get("timezone-hint").textContent = `Suggested: ${timezone}. Coordinate-based lookup is approximate near time-zone borders; verify the historical local time at the birthplace.`;
       } catch (zoneError) {
         get("timezone-hint").textContent = `${zoneError.message} Choose the IANA timezone manually.`;
       }
