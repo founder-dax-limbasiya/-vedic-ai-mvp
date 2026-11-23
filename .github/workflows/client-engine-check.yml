@@ -9,6 +9,8 @@ on:
       - "package.json"
       - "scripts/build_client_engine.mjs"
       - "scripts/test_client_browser.mjs"
+      - "scripts/generate_python_reference.py"
+      - "api/**"
       - ".github/workflows/client-engine-check.yml"
   workflow_dispatch:
 
@@ -21,6 +23,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned Python reference engine
+        run: pip install -e ./api
+
+      - name: Generate Python parity reference
+        run: python scripts/generate_python_reference.py
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
