@@ -1,6 +1,4 @@
-// Use the local API during development and same-origin API routes when hosted.
-const isLocalHost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+// No calculation API is configured: chart processing runs in the browser.
 window.VEDIC_CONFIG = {
-  API_BASE: isLocalHost ? "http://127.0.0.1:8000" : "",
   SOURCE_URL: "https://github.com/founder-dax-limbasiya/-vedic-ai-mvp"
 };
