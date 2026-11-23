@@ -1,0 +1,75 @@
+name: Offline website package
+
+on:
+  push:
+    branches: [client-side-engine-poc]
+    paths:
+      - "web/**"
+      - "scripts/build_client_engine.mjs"
+      - "scripts/create_offline_web_package.py"
+      - "start.py"
+      - "START-JYOTI-WINDOWS.bat"
+      - "START-JYOTI-MAC-LINUX.sh"
+      - "README-OFFLINE.txt"
+      - "LICENSE"
+      - "NOTICE.md"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/offline-website-package.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-offline-website:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install open-source browser engine
+        run: npm install --no-audit --no-fund
+
+      - name: Build local WebAssembly calculation engine
+        run: npm run build:client
+
+      - name: Create offline website ZIP
+        run: python3 scripts/create_offline_web_package.py
+
+      - name: Smoke-test package contents
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          archive = Path("dist/Jyoti-Vedic-AI-Offline-Website.zip")
+          assert archive.is_file() and archive.stat().st_size > 100_000
+          with ZipFile(archive) as zf:
+              names = set(zf.namelist())
+          required = {
+              "Jyoti-Vedic-AI-Offline-Website/index.html",
+              "Jyoti-Vedic-AI-Offline-Website/app-local.js",
+              "Jyoti-Vedic-AI-Offline-Website/engine.bundle.js",
+              "Jyoti-Vedic-AI-Offline-Website/swisseph.wasm",
+              "Jyoti-Vedic-AI-Offline-Website/start.py",
+              "Jyoti-Vedic-AI-Offline-Website/START-JYOTI-WINDOWS.bat",
+              "Jyoti-Vedic-AI-Offline-Website/LICENSE",
+              "Jyoti-Vedic-AI-Offline-Website/NOTICE.md",
+          }
+          missing = required - names
+          assert not missing, f"Missing package files: {sorted(missing)}"
+          print(f"Verified {len(names)} files in {archive} ({archive.stat().st_size:,} bytes)")
+          PY
+
+      - name: Upload offline website package
+        uses: actions/upload-artifact@v4
+        with:
+          name: jyoti-offline-website
+          path: dist/Jyoti-Vedic-AI-Offline-Website.zip
+          if-no-files-found: error
+          retention-days: 30
