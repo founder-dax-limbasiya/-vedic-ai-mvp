@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "test:client": "node --test tests/client-engine.test.js",
-    "build:client": "node scripts/build_client_engine.mjs"
+    "build:client": "node scripts/build_client_engine.mjs",
+    "test:browser": "node scripts/test_client_browser.mjs"
   },
   "dependencies": {
     "@swisseph/browser": "1.4.0"
