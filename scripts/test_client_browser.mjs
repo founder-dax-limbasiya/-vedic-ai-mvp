@@ -120,6 +120,12 @@ try{
     pythonChart.vimshottari_mahadashas.map(x=>x.lord),
     "Vimshottari sequence parity"
   );
+  for(let i=0;i<result.dasha.length;i++){
+    const actual=result.dasha[i],expected=pythonChart.vimshottari_mahadashas[i];
+    assertNearTime(actual.start_local,expected.start_local,`Mahadasha ${actual.lord} start`,1);
+    assertNearTime(actual.end_local,expected.end_local,`Mahadasha ${actual.lord} end`,1);
+    assert.ok(Math.abs(actual.duration_years-expected.duration_years)<=0.0001,`Mahadasha ${actual.lord} duration`);
+  }
   assert.equal(Object.keys(result.divisional).length,Object.keys(pythonChart.divisional_charts).length);
   for(const [code,actual] of Object.entries(result.divisional)){
     const expected=pythonChart.divisional_charts[code];
