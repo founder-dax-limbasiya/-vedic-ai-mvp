@@ -1,68 +1,61 @@
-# Jyoti: local-first calculation architecture
+# Jyoti: local-first, zero-hosting architecture
 
 ## Decision
 
-Jyoti's website and Android app share a calculation engine that runs on the user's device. Chart calculations do not call a Jyoti API or require a paid compute server.
+Jyoti's local-first Android app and downloadable website calculate on the user's own device. Neither needs a Jyoti backend, paid compute server, or cloud-hosting account.
 
-- Website: static files + browser WebAssembly. A static host is still needed to deliver the site.
-- Android: the same web UI, JavaScript bundle and WebAssembly binary are packaged into the APK. Calculation works locally after installation.
-- Birth data: sent to no Jyoti server for chart calculation.
-- Optional place lookup: sends only the search query to OpenStreetMap Nominatim. Users can enter coordinates manually and calculate without this request.
-- Time-zone selection: browser's IANA zone list plus a bundled coordinate boundary lookup. The coordinate lookup can be approximate near borders; verify historical local civil time for the birth date.
+- **Android:** the website UI, JavaScript engine and WebAssembly binary are included in the APK. Calculations run locally after installation.
+- **Offline website:** a ZIP contains the static website and local engine. Its included launcher starts a small HTTP server bound to `127.0.0.1` on the user's computer. This is a local device process, not cloud hosting.
+- **Public website URL:** intentionally not provided. A public URL requires some machine/service to host and serve files. No Cloudflare, Render, Vercel or other host is configured.
+- **Birth data:** no Jyoti calculation API call is made. Chart inputs are processed in the browser/app.
+- **Optional place search:** sends only the search query to OpenStreetMap Nominatim. Manual latitude/longitude entry avoids that request.
+- **Time zones:** a bundled coordinate boundary lookup is used. Results can be approximate near time-zone borders; verify historical local civil time.
+
+## Website package
+
+Build order:
+
+1. Install pinned JavaScript dependencies.
+2. Build `web/engine.bundle.js` and copy `web/swisseph.wasm`.
+3. Run `scripts/create_offline_web_package.py`.
+4. Distribute `dist/Jyoti-Vedic-AI-Offline-Website.zip`.
+
+The package includes `start.py`, Windows and macOS/Linux launchers, attribution notices and the website assets. It requires Python 3.8+ on the desktop computer. The launcher binds to loopback only and automatically opens the browser. Direct `file://` opening is not supported because browsers restrict WebAssembly modules and service workers on file URLs.
+
+The separate GitHub Actions workflow builds and uploads the ZIP artifact. Artifact retention is temporary; the package is a build output, not a permanent public website address.
 
 ## Calculation engine
 
-- `@swisseph/browser` runs Swiss Ephemeris through WebAssembly, using its built-in Moshier ephemeris mode.
-- `web/engine/vedic-core.js` ports the Vedic sign/nakshatra, divisional-chart, Vimshottari and Panchanga rules from the pinned `vedic-calc` version.
-- `web/engine/index.js` provides the device-local API for birth charts, daily Panchanga, sunrise-to-next-sunrise transitions and coordinate-to-time-zone lookup.
-- `scripts/build_client_engine.mjs` creates `web/engine.bundle.js` and copies `web/swisseph.wasm`.
+- `@swisseph/browser` runs Swiss Ephemeris through WebAssembly using its built-in Moshier ephemeris mode.
+- `web/engine/vedic-core.js` implements Vedic sign/nakshatra, divisional-chart, Vimshottari and Panchanga rules from the pinned `vedic-calc` version.
+- `web/engine/index.js` provides device-local chart, daily Panchanga, sunrise-to-next-sunrise transitions and coordinate-to-time-zone functionality.
+- `scripts/build_client_engine.mjs` builds the bundle and copies the WASM binary.
 
-## Current verification
+## Verification and known limitations
 
-The real-browser CI run at commit `40f715337fb95e6037c53e8361d7accf64c5bf7f` passed:
+The Chromium browser test passed:
 - six pure calculation unit tests;
-- real Chromium WebAssembly initialization and calculation;
-- a sample chart checked against the pinned Python engine (9 planets, ascendant, 12 houses, 16 divisional charts, Mahadasha and birth Panchanga);
-- all nine Mahadasha lord, start-date, end-date and duration values against the Python reference;
-- a daily Panchanga and transition comparison for one test date/location;
+- actual browser WebAssembly initialization and calculation;
+- one sample chart compared with the pinned Python engine (9 planets, ascendant, 12 houses, 16 divisional charts, Mahadasha and birth Panchanga);
+- all nine Mahadasha lord, start-date, end-date and duration values in that fixture;
+- a daily Panchanga and transition comparison for a selected test date/location;
 - website UI flow for chart, daily Panchanga and transition rendering;
-- zero outbound browser requests during calculation.
+- zero outbound browser requests during that calculation flow using manual coordinates.
 
-The daily sunrise in the sample differed by 79 seconds from the Python reference, inside the current 180-second test tolerance. Sunrise and sunset are found through a local solar-altitude search because the browser wrapper does not expose the same `rise_trans` routine as the Python package. That approximation needs more multi-location/date verification before a production migration. The current sample is one chart birth and one daily Panchanga date across Jamnagar/Mumbai, so it is a useful regression gate, not a complete accuracy certification.
+The sample daily sunrise differed by 79 seconds from the Python reference, within the current 180-second test tolerance. The browser wrapper uses a local solar-altitude search rather than the same Python `rise_trans` routine. This sunrise approximation needs more multi-location/date verification. The current checks are regression tests, not a complete accuracy certification.
 
-The APK build workflow also completed successfully at commit `8e99cee927824da12275dada8beba0e9ef2ac637`. This proves the APK packages the local assets and compiles; it is not yet a physical-device or Android-emulator runtime test.
+The APK workflow previously completed at commit `8e99cee927824da12275dada8beba0e9ef2ac637`. That verifies APK packaging and compilation, not runtime behaviour on a physical Android device or emulator. The offline website ZIP also needs its first completed CI build and end-to-end launcher test before being treated as release-ready.
 
-This is still an experimental branch. The current `main` branch, Render Blueprint, Python API and server-backed production UI have not been changed. Do not remove the fallback backend or switch production until the broader parity suite and Android runtime test pass.
+The `client-side-engine-poc` branch remains experimental. The `main` branch, original FastAPI backend and server-backed UI have not been migrated. The backend is retained as a reference for regression checks; no hosted deployment is part of this plan.
 
-## Static website hosting
+## Privacy and offline behaviour
 
-The static website still needs a public host, but it does not need a calculation API. Recommended option: Cloudflare Pages Free, with no Pages Functions.
-
-Current Cloudflare documentation (checked 23 November 2026) lists 500 builds/month and one concurrent build on the Free plan. Pages static asset requests are free and unlimited when the request does not invoke Pages Functions. Limits and plan terms can change; this is not a lifetime guarantee.
-
-GitHub Pages is deliberately not the recommended production host for a SaaS: GitHub says Pages is not intended or allowed as free hosting for an online business or commercial SaaS.
-
-### Connect the repository in Cloudflare Pages
-
-1. In Cloudflare Dashboard, open **Workers & Pages → Create application → Pages → Connect to Git**.
-2. Authorize GitHub and select `founder-dax-limbasiya/-vedic-ai-mvp`.
-3. Set the production branch to `main` after the local-first branch has been reviewed and merged.
-4. Use these build settings:
-   - Framework preset: **None**
-   - Root directory: `/`
-   - Build command: `npm install --no-audit --no-fund && npm run build:client`
-   - Build output directory: `web`
-5. Save and deploy. Cloudflare Pages serves the generated static bundle from its `pages.dev` address. No API token needs to be pasted into source code or chat.
-
-Cloudflare Git integration can auto-deploy after each push to the selected production branch. It also supports preview deployments for branches; keep previews disabled or use them only for testing until the feature branch is ready.
-
-## Offline and privacy behaviour
-
-- After initial website load, the service worker caches the app shell, browser bundle and WASM asset. Subsequent calculations can run offline as long as the browser has retained the cache.
-- The APK bundles the same assets, so calculations do not depend on connectivity after installation.
-- Place search is an optional external lookup; manual coordinates work without it.
-- No login, cloud sync, database, payments, ads or analytics are included.
+- Birth chart, divisional chart, Mahadasha and Panchanga calculations run locally.
+- The APK bundles the calculation engine and does not require a network connection for those calculations after installation.
+- The offline website runs on the computer's loopback address with its own included assets.
+- Place search is optional and external; manual coordinates work without it.
+- No login, database, cloud sync, payments, ads or analytics are included in this prototype.
 
 ## Licensing
 
-The project is AGPL-3.0-or-later. The selected `@swisseph/browser` package is AGPL-3.0; `@photostructure/tz-lookup` is CC0-1.0. Preserve upstream notices and provide the corresponding source as required by AGPL when distributing the APK or offering the website over a network. Review all transitive dependency notices before public launch. This is an engineering summary, not legal advice.
+The project is AGPL-3.0-or-later. The selected `@swisseph/browser` package is AGPL-3.0; `@photostructure/tz-lookup` is CC0-1.0. Preserve upstream notices and provide corresponding source as required by AGPL when distributing the APK or website package. Review all transitive dependency notices before public launch. This is an engineering summary, not legal advice.
