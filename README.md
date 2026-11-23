@@ -14,6 +14,23 @@ A mobile-first, privacy-conscious Vedic birth-chart PWA with a Python API. “Jy
 - Mobile-first installable PWA with a hand-crafted editorial Jyotish interface, South Indian-style D1 Rashi chart, divisional-chart selector, Panchanga transition timeline and JSON export.
 - No account database, saved birth profiles, payments, ads, analytics, or AI interpretations in this starter.
 
+
+## Local-first prototype (feature branch)
+
+The `client-side-engine-poc` branch contains an experimental shared browser/Android calculation engine. Birth charts, divisional charts, Mahadasha and Panchanga are calculated on the user's device using Swiss Ephemeris WebAssembly; there is no Jyoti calculation API call in this prototype. The current `main` branch remains the original FastAPI-backed implementation until the local engine has broader parity and Android runtime verification.
+
+Build the local calculation bundle (Node.js 22+):
+
+```bash
+npm install --no-audit --no-fund
+npm run test:client
+npm run build:client
+```
+
+Serve `web/` with a static web server after building. For Cloudflare Pages, use build command `npm install --no-audit --no-fund && npm run build:client` and output directory `web`. The APK workflow runs the same build step and packages the bundle and WASM binary into Android assets. See [the local-first architecture and validation notes](docs/zero-hosting-architecture.md).
+
+Optional place search uses OpenStreetMap Nominatim; manual coordinates avoid that network request. Coordinate-to-time-zone lookup is bundled locally.
+
 ## Licence
 This project is AGPL-3.0-or-later. It integrates `vedic-calc` (AGPL-3.0-or-later) and Swiss Ephemeris, which is dual-licensed under AGPL or a professional licence. This repository chooses the AGPL route. Network users must be offered the complete corresponding source under the licence terms. This is an engineering assessment, not legal advice. Review all transitive dependencies and notices before public launch.
 
