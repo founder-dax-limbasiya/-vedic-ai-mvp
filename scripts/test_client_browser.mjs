@@ -192,7 +192,7 @@ try{
   assert.equal(await uiPage.locator("#daily-panchanga-grid .panchanga-item").count(),5);
   await uiPage.click("#load-panchanga-transitions");
   await uiPage.locator("#transition-panel:not([hidden])").waitFor({timeout:30000});
-  assert.equal(await uiPage.locator("#transition-list .transition-row").count(),pythonTransitions.length);
+  assert.equal(await uiPage.locator("#transition-list .transition-row").count(),reference.ui_transitions.transitions.length);
   assert.deepEqual(uiOutbound,[],"the local-first website UI must not call an API or external service for calculations");
   await uiPage.close();
 
