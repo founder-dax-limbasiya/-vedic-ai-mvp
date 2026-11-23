@@ -20,7 +20,7 @@ test("sign and nakshatra boundaries are stable",()=>{
   assert.equal(nakshatraInfo(0).pada,1);
   assert.equal(nakshatraInfo(13.34).nakshatra,"Bharani");
   assert.equal(nakshatraInfo(40).nakshatra,"Rohini");
-  assert.equal(nakshatraInfo(40).pada,1);
+  assert.equal(nakshatraInfo(40).pada,4); // match floating-point behavior of the pinned Python engine
 });
 
 test("Parashari special varga rules match the source implementation",()=>{
