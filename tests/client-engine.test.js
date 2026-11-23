@@ -43,7 +43,7 @@ test("Panchanga formulas return the expected index names",()=>{
   assert.equal(result.nakshatra,"Chitra");
   assert.equal(result.yoga_name,"Harshana");
   assert.equal(result.karana_number,31);
-  assert.equal(result.karana_name,"Bava");
+  assert.equal(result.karana_name,"Balava");
   assert.equal(result.vara,"Thursday (Guruvara)");
 });
 
